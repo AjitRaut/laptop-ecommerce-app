@@ -10,3 +10,16 @@ env/
 
 .DS_Store
 Thumbs.db
+
+.env
+
+db.sqlite3
+
+/media/
+/media/*
+
+__pycache__/
+*.py[cod]
+
+*/migrations/
+!*/migrations/__init__.py
