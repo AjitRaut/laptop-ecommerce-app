@@ -7,46 +7,55 @@ from .utils import send_invoice_email
 from django.db import transaction
 from .models import Cart, CartItem, Wishlist, WishlistItem, Order, OrderItem
 from products.models import Product
-from .serializers import (CartSerializer, CartItemSerializer, WishlistSerializer,
-                         OrderSerializer, OrderCreateSerializer)
+from .serializers import (
+    CartSerializer,
+    CartItemSerializer,
+    WishlistSerializer,
+    OrderSerializer,
+    OrderCreateSerializer
+)
+import uuid
+
 
 class CartView(generics.RetrieveAPIView):
     serializer_class = CartSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_object(self):
         cart, created = Cart.objects.get_or_create(user=self.request.user)
         return cart
+
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def add_to_cart(request):
     product_id = request.data.get('product_id')
     quantity = int(request.data.get('quantity', 1))
-    
+
     try:
         product = Product.objects.get(id=product_id, is_active=True)
         cart, created = Cart.objects.get_or_create(user=request.user)
-        
+
         cart_item, created = CartItem.objects.get_or_create(
             cart=cart,
             product=product,
             defaults={'quantity': quantity}
         )
-        
+
         if not created:
             cart_item.quantity += quantity
             cart_item.save()
-        
+
         return Response({'message': 'Product added to cart'}, status=status.HTTP_200_OK)
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['PUT'])
 @permission_classes([permissions.IsAuthenticated])
 def update_cart_item(request, item_id):
     quantity = int(request.data.get('quantity', 1))
-    
+
     try:
         cart_item = CartItem.objects.get(id=item_id, cart__user=request.user)
         cart_item.quantity = quantity
@@ -54,6 +63,7 @@ def update_cart_item(request, item_id):
         return Response({'message': 'Cart updated'}, status=status.HTTP_200_OK)
     except CartItem.DoesNotExist:
         return Response({'error': 'Cart item not found'}, status=status.HTTP_404_NOT_FOUND)
+
 
 @api_view(['DELETE'])
 @permission_classes([permissions.IsAuthenticated])
@@ -65,28 +75,30 @@ def remove_from_cart(request, item_id):
     except CartItem.DoesNotExist:
         return Response({'error': 'Cart item not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
 class WishlistView(generics.RetrieveAPIView):
     serializer_class = WishlistSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_object(self):
         wishlist, created = Wishlist.objects.get_or_create(user=self.request.user)
         return wishlist
+
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
 def add_to_wishlist(request):
     product_id = request.data.get('product_id')
-    
+
     try:
         product = Product.objects.get(id=product_id, is_active=True)
         wishlist, created = Wishlist.objects.get_or_create(user=request.user)
-        
+
         wishlist_item, created = WishlistItem.objects.get_or_create(
             wishlist=wishlist,
             product=product
         )
-        
+
         if created:
             return Response({'message': 'Product added to wishlist'}, status=status.HTTP_200_OK)
         else:
@@ -94,19 +106,32 @@ def add_to_wishlist(request):
     except Product.DoesNotExist:
         return Response({'error': 'Product not found'}, status=status.HTTP_404_NOT_FOUND)
 
+
 class OrderListView(generics.ListAPIView):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
+
     def get_queryset(self):
         return Order.objects.filter(user=self.request.user)
+
 
 class OrderDetailView(generics.RetrieveAPIView):
     serializer_class = OrderSerializer
     permission_classes = [permissions.IsAuthenticated]
-    
-    def get_queryset(self):
-        return Order.objects.filter(user=self.request.user)
+
+    def get_object(self):
+        pk = self.kwargs['pk']
+
+        # Handle both UUID formats (with and without hyphens)
+        try:
+            if len(pk) == 32 and '-' not in pk:
+                formatted_uuid = f"{pk[:8]}-{pk[8:12]}-{pk[12:16]}-{pk[16:20]}-{pk[20:]}"
+                pk = formatted_uuid
+
+            return get_object_or_404(Order, order_id=pk, user=self.request.user)
+        except:
+            return get_object_or_404(Order, order_id=self.kwargs['pk'], user=self.request.user)
+
 
 @api_view(['POST'])
 @permission_classes([permissions.IsAuthenticated])
@@ -131,8 +156,10 @@ def create_order(request):
             shipping_charges = 50 if total_amount < 500 else 0
             final_amount = total_amount + tax_amount + shipping_charges
 
-            # Create the order
+            # Create the order with string UUID
+            order_uuid = str(uuid.uuid4())
             order = Order.objects.create(
+                order_id=order_uuid,
                 user=request.user,
                 total_amount=total_amount,
                 tax_amount=tax_amount,
@@ -143,15 +170,21 @@ def create_order(request):
 
             # Create order items and update stock
             for cart_item in cart_items:
+                primary_img = cart_item.product.images.filter(is_primary=True).first()
+                if not primary_img:
+                    primary_img = cart_item.product.images.first()
+
                 OrderItem.objects.create(
                     order=order,
                     product=cart_item.product,
                     product_name=cart_item.product.name,
                     product_price=cart_item.product.discounted_price,
+                    product_image=request.build_absolute_uri(primary_img.image.url) if primary_img else None,
                     quantity=cart_item.quantity,
                     total_price=cart_item.total_price
                 )
 
+                # Update product stock
                 product = cart_item.product
                 product.stock_quantity -= cart_item.quantity
                 product.save()

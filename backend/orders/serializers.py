@@ -1,14 +1,22 @@
 from rest_framework import serializers
+from decimal import Decimal, InvalidOperation
+from django.db import models
 from .models import Cart, CartItem, Wishlist, WishlistItem, Order, OrderItem, Payment
 from products.serializers import ProductListSerializer
 
 class CartItemSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
-    total_price = serializers.ReadOnlyField()
+    total_price = serializers.SerializerMethodField()
     
     class Meta:
         model = CartItem
         fields = '__all__'
+    
+    def get_total_price(self, obj):
+        try:
+            return obj.product.discounted_price * obj.quantity
+        except (AttributeError, TypeError, InvalidOperation):
+            return Decimal('0.00')
 
 class CartSerializer(serializers.ModelSerializer):
     items = CartItemSerializer(many=True, read_only=True)
@@ -20,10 +28,29 @@ class CartSerializer(serializers.ModelSerializer):
         fields = '__all__'
     
     def get_total_items(self, obj):
-        return obj.items.count()
+        try:
+            return obj.items.count()
+        except:
+            return 0
     
     def get_total_amount(self, obj):
-        return sum(item.total_price for item in obj.items.all())
+        try:
+            total = Decimal('0.00')
+            for item in obj.items.all():
+                try:
+                    item_total = item.product.discounted_price * item.quantity
+                    # Check if the result would cause overflow
+                    if item_total > Decimal('99999999.99'):
+                        continue
+                    total += item_total
+                    # Prevent total from exceeding decimal field limit
+                    if total > Decimal('99999999.99'):
+                        return Decimal('99999999.99')
+                except (AttributeError, TypeError, InvalidOperation):
+                    continue
+            return total
+        except:
+            return Decimal('0.00')
 
 class WishlistItemSerializer(serializers.ModelSerializer):
     product = ProductListSerializer(read_only=True)
@@ -46,6 +73,7 @@ class OrderItemSerializer(serializers.ModelSerializer):
 
 class OrderSerializer(serializers.ModelSerializer):
     items = OrderItemSerializer(many=True, read_only=True)
+    order_id = serializers.CharField(read_only=True)  # Explicitly handle UUID as string
     
     class Meta:
         model = Order
@@ -54,8 +82,8 @@ class OrderSerializer(serializers.ModelSerializer):
 class OrderCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Order
-        fields = ('shipping_name', 'shipping_phone', 'shipping_address', 
-                 'shipping_city', 'shipping_state', 'shipping_pincode', 'notes')
+        fields = ('shipping_name', 'shipping_phone', 'shipping_address',
+                  'shipping_city', 'shipping_state', 'shipping_pincode', 'notes')
 
 class PaymentSerializer(serializers.ModelSerializer):
     class Meta:

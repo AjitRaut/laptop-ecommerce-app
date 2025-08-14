@@ -11,6 +11,6 @@ urlpatterns = [
     path('wishlist/', views.WishlistView.as_view(), name='wishlist'),
     path('wishlist/add/', views.add_to_wishlist, name='add-to-wishlist'),
     path('orders/', views.OrderListView.as_view(), name='order-list'),
-    path('orders/<uuid:pk>/', views.OrderDetailView.as_view(), name='order-detail'),
     path('orders/create/', views.create_order, name='create-order'),
+    path('orders/<str:pk>/', views.OrderDetailView.as_view(), name='order-detail'),
 ]
