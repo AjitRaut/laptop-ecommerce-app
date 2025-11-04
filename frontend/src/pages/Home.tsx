@@ -94,7 +94,7 @@ const Home: React.FC = () => {
                 </Button>
               </Link>
               <Link to="/products?category=gaming">
-                <Button variant="outline" size="xl" className="border-white/30 text-white hover:bg-white/10 px-8">
+                <Button variant="outline" size="xl" className="border-white/30 text-black hover:bg-white/10 hover:text-white px-8">
                   Gaming Laptops
                 </Button>
               </Link>

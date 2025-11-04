@@ -114,7 +114,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, inWishlist = false, 
               size="sm"
               fullWidth
               leftIcon={<ShoppingCartIcon className="h-4 w-4" />}
-              className="shadow-lg backdrop-blur-sm bg-white/95 text-gray-900 hover:bg-white border border-gray-200"
+              className="shadow-lg backdrop-blur-sm text-gray-900 border border-gray-200"
             >
               {product.is_in_stock ? 'Add to Cart' : 'Out of Stock'}
             </Button>

@@ -25,8 +25,8 @@ const Login: React.FC = () => {
   formState: { errors },
 } = useForm<LoginCredentials>({
   defaultValues: {
-    email: 'ajit@example.com',
-    password: 'StrongPassword@123',
+    email: '',
+    password: '',
   },
 });
 
