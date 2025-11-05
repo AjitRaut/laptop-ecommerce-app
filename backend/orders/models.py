@@ -64,7 +64,6 @@ class Order(models.Model):
         ('refunded', 'Refunded'),
     )
     
-    # Changed to CharField to avoid SQLite INTEGER overflow
     order_id = models.CharField(max_length=36, default=uuid.uuid4, editable=False, unique=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='orders')
     total_amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -77,7 +76,6 @@ class Order(models.Model):
     payment_method = models.CharField(max_length=50, blank=True, null=True)
     payment_transaction_id = models.CharField(max_length=200, blank=True, null=True)
     
-    # Shipping Address
     shipping_name = models.CharField(max_length=200)
     shipping_phone = models.CharField(max_length=15)
     shipping_address = models.TextField()
@@ -94,7 +92,6 @@ class Order(models.Model):
         ordering = ['-created_at']
     
     def save(self, *args, **kwargs):
-        # Ensure order_id is string if it's a UUID object
         if isinstance(self.order_id, uuid.UUID):
             self.order_id = str(self.order_id)
         super().save(*args, **kwargs)
@@ -105,11 +102,21 @@ class Order(models.Model):
 class OrderItem(models.Model):
     order = models.ForeignKey(Order, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    product_name = models.CharField(max_length=200)  # Store name at time of order
-    product_price = models.DecimalField(max_digits=10, decimal_places=2)  # Store price at time of order
-    product_image = models.URLField(max_length=500, blank=True, null=True)  
+    product_name = models.CharField(max_length=200)
+    product_price = models.DecimalField(max_digits=10, decimal_places=2)
+    product_image = models.URLField(max_length=500, blank=True, null=True)
     quantity = models.PositiveIntegerField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    
+    # 🆕 VENDOR TRACKING
+    vendor = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='vendor_order_items',
+        null=True,
+        blank=True
+    )
+    vendor_status = models.CharField(max_length=20, default='pending')  # pending, accepted, shipped
     
     class Meta:
         db_table = 'order_items'
@@ -129,7 +136,6 @@ class Payment(models.Model):
         ('refunded', 'Refunded'),
     )
     
-    # Changed to CharField to avoid SQLite INTEGER overflow
     payment_id = models.CharField(max_length=36, default=uuid.uuid4, editable=False, unique=True)
     order = models.OneToOneField(Order, on_delete=models.CASCADE, related_name='payment')
     amount = models.DecimalField(max_digits=10, decimal_places=2)
@@ -141,7 +147,6 @@ class Payment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     
     def save(self, *args, **kwargs):
-        # Ensure payment_id is string if it's a UUID object
         if isinstance(self.payment_id, uuid.UUID):
             self.payment_id = str(self.payment_id)
         super().save(*args, **kwargs)

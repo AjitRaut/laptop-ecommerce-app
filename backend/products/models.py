@@ -49,10 +49,20 @@ class Product(models.Model):
     min_stock_level = models.PositiveIntegerField(default=5)
     is_active = models.BooleanField(default=True)
     is_featured = models.BooleanField(default=False)
-    weight = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)  # in kg
+    weight = models.DecimalField(max_digits=6, decimal_places=2, blank=True, null=True)
     warranty_months = models.PositiveIntegerField(default=12)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    
+    # 🆕 VENDOR FIELD
+    vendor = models.ForeignKey(
+        User, 
+        on_delete=models.CASCADE, 
+        related_name='vendor_products',
+        limit_choices_to={'user_type': 'vendor'},
+        null=True,  # Allows existing products to work
+        blank=True
+    )
     
     class Meta:
         db_table = 'products'
@@ -88,8 +98,8 @@ class ProductImage(models.Model):
 
 class ProductSpecification(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='specifications')
-    spec_name = models.CharField(max_length=100)  # e.g., "RAM", "Storage", "Processor"
-    spec_value = models.CharField(max_length=200)  # e.g., "16GB DDR4", "512GB SSD", "Intel i7"
+    spec_name = models.CharField(max_length=100)
+    spec_value = models.CharField(max_length=200)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
