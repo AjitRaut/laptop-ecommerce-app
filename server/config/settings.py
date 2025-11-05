@@ -10,7 +10,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY')
 
-AUTH_USER_MODEL = 'server.users.User'
+AUTH_USER_MODEL = 'users.User'
 
 DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = ["*", "your-app-name.onrender.com"]
@@ -37,12 +37,12 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
-    'server.users',
-    'server.products',
-    'server.orders',
-    'server.admin_panel',
-    'server.payments',
-    'server.vendor_panel',
+    'users',
+    'products',
+    'orders',
+    'admin_panel',
+    'payments',
+    'vendor_panel',
 ]
 
 TEMPLATES = [
@@ -105,10 +105,7 @@ CORS_ALLOWED_ORIGINS = [
 
 DEBUG = True
 
-ROOT_URLCONF = "server.config.urls"
-WSGI_APPLICATION = 'server.config.wsgi.application'
-
-
+ROOT_URLCONF = "config.urls"
  
 CORS_ALLOW_CREDENTIALS = True
 
