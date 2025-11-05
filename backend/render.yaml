@@ -2,7 +2,7 @@ services:
   - type: web
     name: college-django-app
     runtime: python
-    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --noinput
+    buildCommand: pip install -r backend/requirements.txt && python manage.py collectstatic --noinput
     startCommand: gunicorn backend.config.wsgi
     envVars:
       - key: DEBUG
