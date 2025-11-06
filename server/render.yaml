@@ -3,7 +3,7 @@ services:
     name: college-django-app
     runtime: python
     buildCommand: pip install -r server/requirements.txt && python server/manage.py collectstatic --noinput
-    startCommand: python manage.py migrate && gunicorn server.config.wsgi
+    startCommand: python manage.py migrate && python manage.py shell < create_admin.py && gunicorn server.config.wsgi
     envVars:
       - key: DEBUG
         value: "False"
