@@ -21,5 +21,8 @@ db.sqlite3
 __pycache__/
 *.py[cod]
 
-*/migrations/
+# Ignore all migrations except __init__.py
+*/migrations/*
 !*/migrations/__init__.py
+!*/migrations/*.py
+
