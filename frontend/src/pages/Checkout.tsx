@@ -8,10 +8,10 @@ import { useGetCartQuery, useCreateOrderMutation } from '@/store/api/ordersApi';
 import { useCreateRazorpayOrderMutation, useVerifyRazorpayPaymentMutation } from '@/store/api/paymentsApi';
 import { formatPrice } from '@/utils/formatters';
 import { INDIAN_STATES } from '@/utils/constants';
-import type { CheckoutFormData } from '@/types';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import Input from '@/components/common/input';
 import Button from '@/components/common/Button';
+import { CheckoutFormData } from '@/types/form';
 
 declare global {
   interface Window {

@@ -205,7 +205,7 @@ const ProductDetail: React.FC = () => {
               </h1>
 
               <div className="mt-3">
-                <p className="text-lg text-gray-600">{product.brand?.name}</p>
+                {/* <p className="text-lg text-gray-600">{product.brand?.name}</p> */}
               </div>
 
               {/* Reviews */}
