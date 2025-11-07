@@ -15,18 +15,21 @@ AUTH_USER_MODEL = 'users.User'
 DEBUG = os.getenv("DEBUG", "False") == "True"
 ALLOWED_HOSTS = ["*", "your-app-name.onrender.com"]
 
+load_dotenv()
+
+DATABASE_URL = os.getenv("DATABASE_URL")
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.getenv("DATABASE_URL"),
+        default=DATABASE_URL or "postgres://myuser:7465@localhost:5432/myprojectdb",
         conn_max_age=600,
-        ssl_require=True
+        ssl_require=os.getenv("RENDER", "false").lower() == "true"
     )
 }
 
 
-
 INSTALLED_APPS = [
+    'users',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,7 +40,6 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
-    'users',
     'products',
     'orders',
     'admin_panel',
