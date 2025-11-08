@@ -124,8 +124,8 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # Email Settings (for password reset, etc.)
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-# EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Comment this out
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'  # Comment this out
 
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
