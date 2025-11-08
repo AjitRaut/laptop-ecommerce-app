@@ -143,20 +143,17 @@ def create_order(request):
 
     try:
         with transaction.atomic():
-            # Get the user's cart
             cart = Cart.objects.get(user=request.user)
             cart_items = cart.items.all()
 
             if not cart_items.exists():
                 return Response({'error': 'Cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Calculate totals
             total_amount = sum(item.total_price for item in cart_items)
             tax_amount = total_amount * Decimal('0.18')
             shipping_charges = 50 if total_amount < 500 else 0
             final_amount = total_amount + tax_amount + shipping_charges
 
-            # Create the order with string UUID
             order_uuid = str(uuid.uuid4())
             order = Order.objects.create(
                 order_id=order_uuid,
@@ -168,7 +165,7 @@ def create_order(request):
                 **serializer.validated_data
             )
 
-            # Create order items and update stock
+            # 🆕 UPDATED: Assign vendor to order items
             for cart_item in cart_items:
                 primary_img = cart_item.product.images.filter(is_primary=True).first()
                 if not primary_img:
@@ -181,18 +178,16 @@ def create_order(request):
                     product_price=cart_item.product.discounted_price,
                     product_image=request.build_absolute_uri(primary_img.image.url) if primary_img else None,
                     quantity=cart_item.quantity,
-                    total_price=cart_item.total_price
+                    total_price=cart_item.total_price,
+                    vendor=cart_item.product.vendor  # 🆕 ADD THIS LINE
                 )
 
-                # Update product stock
                 product = cart_item.product
                 product.stock_quantity -= cart_item.quantity
                 product.save()
 
-            # Clear the cart
             cart_items.delete()
 
-            # Try sending the invoice email
             invoice_sent = False
             try:
                 send_invoice_email(order, "order_confirmation")

@@ -11,6 +11,8 @@ from products.serializers import ProductListSerializer
 from orders.serializers import OrderSerializer
 from users.serializers import UserProfileSerializer
 
+
+
 User = get_user_model()
 
 class IsAdminUser(permissions.BasePermission):
@@ -102,3 +104,61 @@ class AdminAnalyticsView(generics.GenericAPIView):
             'daily_sales': list(daily_sales),
             'category_sales': list(category_sales)
         })
+
+        class AdminVendorListView(generics.ListAPIView):
+    """List all vendors (approved and pending)"""
+    queryset = User.objects.filter(user_type='vendor')
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAdminUser]
+
+class AdminVendorDetailView(generics.RetrieveUpdateAPIView):
+    """View and update vendor details"""
+    queryset = User.objects.filter(user_type='vendor')
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAdminUser]
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def approve_vendor(request, vendor_id):
+    """Approve a vendor"""
+    try:
+        vendor = User.objects.get(id=vendor_id, user_type='vendor')
+        vendor.is_vendor_approved = True
+        vendor.save()
+        return Response({
+            'message': 'Vendor approved successfully',
+            'vendor': UserProfileSerializer(vendor).data
+        })
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'Vendor not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+@api_view(['POST'])
+@permission_classes([IsAdminUser])
+def reject_vendor(request, vendor_id):
+    """Reject/suspend a vendor"""
+    try:
+        vendor = User.objects.get(id=vendor_id, user_type='vendor')
+        vendor.is_vendor_approved = False
+        vendor.save()
+        return Response({
+            'message': 'Vendor rejected/suspended',
+            'vendor': UserProfileSerializer(vendor).data
+        })
+    except User.DoesNotExist:
+        return Response(
+            {'error': 'Vendor not found'}, 
+            status=status.HTTP_404_NOT_FOUND
+        )
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def pending_vendors(request):
+    """Get list of vendors waiting for approval"""
+    vendors = User.objects.filter(user_type='vendor', is_vendor_approved=False)
+    return Response({
+        'count': vendors.count(),
+        'vendors': UserProfileSerializer(vendors, many=True).data
+    })

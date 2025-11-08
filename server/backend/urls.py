@@ -6,12 +6,21 @@ from rest_framework_simplejwt.views import TokenRefreshView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    
+    # Authentication
     path('api/auth/', include('users.urls')),
     path('api/auth/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    
+    # Products & Orders
     path('api/products/', include('products.urls')),
     path('api/orders/', include('orders.urls')),
-    path('api/admin/', include('admin_panel.urls')),
     path('api/payments/', include('payments.urls')),
+    
+    # Admin Panel
+    path('api/admin/', include('admin_panel.urls')),
+    
+    # 🆕 VENDOR PANEL
+    path('api/vendor/', include('vendor_panel.urls')),
 ]
 
 if settings.DEBUG:
