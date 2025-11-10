@@ -1,26 +1,32 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { PlusIcon, PencilIcon, TrashIcon } from '@heroicons/react/24/outline';
-import { toast } from 'react-hot-toast';
-import { useGetVendorProductsQuery, useDeleteVendorProductMutation, useUpdateProductStockMutation } from '@/store/api/vendorApi';
-import Button from '@/components/common/Button';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import Badge from '@/components/common/Badge';
-import { formatPrice } from '@/utils/formatters';
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { PlusIcon, PencilIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { toast } from "react-hot-toast";
+import {
+  useGetVendorProductsQuery,
+  useDeleteVendorProductMutation,
+  useUpdateProductStockMutation,
+} from "@/store/api/vendorApi";
+import Button from "@/components/common/Button";
+import LoadingSpinner from "@/components/common/LoadingSpinner";
+import Badge from "@/components/common/Badge";
+import { formatPrice } from "@/utils/formatters";
 
 const VendorProducts: React.FC = () => {
   const { data: products, isLoading } = useGetVendorProductsQuery();
   const [deleteProduct] = useDeleteVendorProductMutation();
   const [updateStock] = useUpdateProductStockMutation();
-  const [editingStock, setEditingStock] = useState<{ [key: number]: number }>({});
+  const [editingStock, setEditingStock] = useState<{
+    [key: number]: number | undefined;
+  }>({});
 
   const handleDelete = async (id: number, name: string) => {
     if (confirm(`Delete "${name}"?`)) {
       try {
         await deleteProduct(id).unwrap();
-        toast.success('Product deleted');
+        toast.success("Product deleted");
       } catch {
-        toast.error('Failed to delete');
+        toast.error("Failed to delete");
       }
     }
   };
@@ -30,10 +36,10 @@ const VendorProducts: React.FC = () => {
     if (newStock !== undefined) {
       try {
         await updateStock({ productId, stock_quantity: newStock }).unwrap();
-        toast.success('Stock updated');
+        toast.success("Stock updated");
         setEditingStock({ ...editingStock, [productId]: undefined });
       } catch {
-        toast.error('Failed to update stock');
+        toast.error("Failed to update stock");
       }
     }
   };
@@ -65,11 +71,21 @@ const VendorProducts: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Product</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Price</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Stock</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Product
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Price
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Stock
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -78,43 +94,64 @@ const VendorProducts: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
-                        src={product.primary_image || '/api/placeholder/80/80'}
+                        src={product.primary_image || "/api/placeholder/80/80"}
                         alt={product.name}
                         className="h-12 w-12 rounded-lg object-cover"
                       />
                       <div className="ml-4">
-                        <p className="font-medium text-gray-900">{product.name}</p>
-                        <p className="text-sm text-gray-500">{product.category_name}</p>
+                        <p className="font-medium text-gray-900">
+                          {product.name}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          {product.category_name}
+                        </p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <p className="font-medium text-gray-900">{formatPrice(product.price)}</p>
+                    <p className="font-medium text-gray-900">
+                      {formatPrice(product.price)}
+                    </p>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
-                        value={editingStock[product.id] ?? product.stock_quantity}
-                        onChange={(e) => setEditingStock({ ...editingStock, [product.id]: parseInt(e.target.value) })}
+                        value={
+                          editingStock[product.id] ?? product.stock_quantity
+                        }
+                        onChange={(e) =>
+                          setEditingStock({
+                            ...editingStock,
+                            [product.id]: parseInt(e.target.value),
+                          })
+                        }
                         className="w-20 px-2 py-1 border rounded-lg text-sm"
                       />
-                      {editingStock[product.id] !== undefined && editingStock[product.id] !== product.stock_quantity && (
-                        <Button size="sm" onClick={() => handleStockUpdate(product.id)}>
-                          Save
-                        </Button>
-                      )}
+                      {editingStock[product.id] !== undefined &&
+                        editingStock[product.id] !== product.stock_quantity && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleStockUpdate(product.id)}
+                          >
+                            Save
+                          </Button>
+                        )}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <Badge variant={product.is_active ? 'success' : 'default'}>
-                      {product.is_active ? 'Active' : 'Inactive'}
+                    <Badge variant={product.is_active ? "success" : "default"}>
+                      {product.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
                       <Link to={`/vendor/products/edit/${product.id}`}>
-                        <Button variant="outline" size="sm" leftIcon={<PencilIcon className="h-4 w-4" />}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          leftIcon={<PencilIcon className="h-4 w-4" />}
+                        >
                           Edit
                         </Button>
                       </Link>

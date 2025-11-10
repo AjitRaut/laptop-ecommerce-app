@@ -87,21 +87,21 @@ const VendorDashboard: React.FC = () => {
       </div>
 
       {/* Alerts */}
-      {data?.stats.low_stock_products > 0 && (
-        <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-8 rounded-lg">
-          <div className="flex items-center">
-            <ExclamationTriangleIcon className="h-6 w-6 text-orange-500 mr-3" />
-            <div>
-              <p className="text-sm font-medium text-orange-800">
-                {data.stats.low_stock_products} products are low on stock
-              </p>
-              <Link to="/vendor/products" className="text-sm text-orange-700 underline">
-                View products
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
+{data?.stats?.low_stock_products && data.stats.low_stock_products > 0 && (
+  <div className="bg-orange-50 border-l-4 border-orange-500 p-4 mb-8 rounded-lg">
+    <div className="flex items-center">
+      <ExclamationTriangleIcon className="h-6 w-6 text-orange-500 mr-3" />
+      <div>
+        <p className="text-sm font-medium text-orange-800">
+          {data?.stats?.low_stock_products} products are low on stock
+        </p>
+        <Link to="/vendor/products" className="text-sm text-orange-700 underline">
+          View products
+        </Link>
+      </div>
+    </div>
+  </div>
+)}
 
       {/* Recent Orders */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
