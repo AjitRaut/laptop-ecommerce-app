@@ -1,0 +1,47 @@
+"""
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Order Confirmation</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background-color: #f8f9fa; padding: 20px; text-align: center; }
+        .content { padding: 20px; }
+        .order-summary { background-color: #f8f9fa; padding: 15px; margin: 20px 0; }
+        .footer { text-align: center; padding: 20px; font-size: 12px; color: #666; }
+        .pending { color: #ffc107; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Order Confirmed!</h1>
+            <p>Hi {{ user.first_name }}, your order has been received!</p>
+        </div>
+        
+        <div class="content">
+            <div class="order-summary">
+                <p><strong>Order ID:</strong> {{ order.order_id }}</p>
+                <p><strong>Payment Status:</strong> <span class="pending">{{ order.payment_status|title }}</span></p>
+                <p><strong>Total Amount:</strong> ₹{{ order.final_amount }}</p>
+                <p><strong>Order Date:</strong> {{ order.created_at|date:"F d, Y" }}</p>
+            </div>
+            
+            {% if order.payment_status == 'pending' %}
+            <div style="background-color: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
+                <p><strong>Payment Pending:</strong> Please complete your payment to confirm this order.</p>
+            </div>
+            {% endif %}
+            
+            <p>Your proforma invoice is attached. Final invoice will be sent after payment confirmation.</p>
+        </div>
+        
+        <div class="footer">
+            <p>© 2024 {{ company_name }}. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
+"""

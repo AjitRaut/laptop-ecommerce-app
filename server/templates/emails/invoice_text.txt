@@ -1,0 +1,30 @@
+"""
+Dear {{ user.first_name }},
+
+{% if order.payment_status == 'paid' %}
+Thank you for your payment! Your order has been confirmed.
+{% else %}
+Your order has been received and is awaiting payment.
+{% endif %}
+
+Order Details:
+- Order ID: {{ order.order_id }}
+- Total Amount: ₹{{ order.final_amount }}
+- Payment Status: {{ order.payment_status|title }}
+- Order Date: {{ order.created_at|date:"F d, Y" }}
+
+Items:
+{% for item in items %}
+- {{ item.product_name }} (Qty: {{ item.quantity }}) - ₹{{ item.total_price }}
+{% endfor %}
+
+Shipping Address:
+{{ order.shipping_name }}
+{{ order.shipping_address }}
+{{ order.shipping_city }}, {{ order.shipping_state }} - {{ order.shipping_pincode }}
+
+Your invoice is attached as PDF.
+
+Best regards,
+{{ company_name }} Team
+"""
