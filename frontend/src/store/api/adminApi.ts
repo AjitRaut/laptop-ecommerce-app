@@ -25,6 +25,19 @@ export interface AdminVendor {
   is_vendor_approved: boolean;
   vendor_commission_rate: string;
   created_at: string;
+  address: string;
+  city: string | null;
+  state: string | null;
+  pincode: string | null;
+  is_verified: boolean;
+  user_type: string;
+}
+
+export interface VendorsResponse {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: AdminVendor[];
 }
 
 export const adminApi = createApi({
@@ -52,7 +65,7 @@ export const adminApi = createApi({
     }),
 
     // Vendors
-    getVendors: builder.query<AdminVendor[], void>({
+    getVendors: builder.query<VendorsResponse, void>({
       query: () => 'vendors/',
       providesTags: ['AdminVendors'],
     }),
@@ -87,18 +100,18 @@ export const adminApi = createApi({
     }),
 
     // Products
-    getAdminProducts: builder.query<any[], void>({
+    getAdminProducts: builder.query<VendorsResponse, void>({
       query: () => 'products/',
       providesTags: ['AdminProducts'],
     }),
 
     // Orders
-    getAdminOrders: builder.query<any[], void>({
+    getAdminOrders: builder.query<VendorsResponse, void>({
       query: () => 'orders/',
       providesTags: ['AdminOrders'],
     }),
     
-    getAdminOrderDetail: builder.query<any, string>({
+    getAdminOrderDetail: builder.query<VendorsResponse, string>({
       query: (orderId) => `orders/${orderId}/`,
       providesTags: ['AdminOrders'],
     }),
@@ -113,7 +126,7 @@ export const adminApi = createApi({
     }),
 
     // Users
-    getAdminUsers: builder.query<any[], void>({
+    getAdminUsers: builder.query<VendorsResponse, void>({
       query: () => 'users/',
       providesTags: ['AdminUsers'],
     }),

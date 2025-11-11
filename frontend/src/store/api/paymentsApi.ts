@@ -5,8 +5,7 @@ import BASE_URL from "@/config/apiConfig";
 export const paymentsApi = createApi({
   reducerPath: "paymentsApi",
   baseQuery: fetchBaseQuery({
-    // baseUrl: `${BASE_URL}payments/`,
-    baseUrl:"http://localhost:8000/api/payments/",
+    baseUrl: `${BASE_URL}payments/`,
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState as any).auth.token;
       if (token) {

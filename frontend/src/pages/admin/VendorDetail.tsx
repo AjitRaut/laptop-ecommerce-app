@@ -8,13 +8,15 @@ import {
   ShoppingCartIcon,
   ClockIcon,
   ExclamationTriangleIcon,
+  BuildingStorefrontIcon,
 } from '@heroicons/react/24/outline';
-import { useGetAdminDashboardQuery } from '@/store/api/adminApi';
+import { useGetAdminDashboardQuery, useGetPendingVendorsQuery } from '@/store/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { formatPrice } from '@/utils/formatters';
 
 const AdminDashboard: React.FC = () => {
   const { data, isLoading } = useGetAdminDashboardQuery();
+  const { data: pendingVendorsData } = useGetPendingVendorsQuery();
 
   if (isLoading) {
     return (
@@ -38,6 +40,14 @@ const AdminDashboard: React.FC = () => {
       icon: UsersIcon,
       color: 'from-green-500 to-teal-500',
       link: '/admin/users',
+    },
+    {
+      name: 'Vendors',
+      value: pendingVendorsData?.count || 0,
+      icon: BuildingStorefrontIcon,
+      color: 'from-indigo-500 to-purple-500',
+      link: '/admin/vendors',
+      badge: pendingVendorsData?.count || 0,
     },
     {
       name: 'Total Orders',
@@ -64,7 +74,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.name}
@@ -73,11 +83,16 @@ const AdminDashboard: React.FC = () => {
             transition={{ delay: index * 0.1 }}
           >
             <Link to={stat.link}>
-              <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer">
+              <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-shadow cursor-pointer relative">
                 <div className="flex items-center justify-between mb-4">
                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
                     <stat.icon className="h-6 w-6 text-white" />
                   </div>
+                  {stat.badge && stat.badge > 0 && (
+                    <span className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+                      {stat.badge}
+                    </span>
+                  )}
                 </div>
                 <h3 className="text-2xl font-bold text-gray-900">{stat.value}</h3>
                 <p className="text-sm text-gray-600 mt-1">{stat.name}</p>

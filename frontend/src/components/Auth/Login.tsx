@@ -16,35 +16,49 @@ const Login: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useAppDispatch();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [login, { isLoading }] = useLoginMutation();
 
   const {
-  register,
-  handleSubmit,
-  formState: { errors },
-} = useForm<LoginCredentials>({
-  defaultValues: {
-    email: '',
-    password: '',
-  },
-});
-
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginCredentials>({
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
 
   const from = location.state?.from?.pathname || '/';
 
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate(from, { replace: true });
+    if (isAuthenticated && user) {
+      // Redirect based on user type
+      if (user.user_type === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (user.user_type === 'vendor') {
+        navigate('/vendor/dashboard', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     }
-  }, [isAuthenticated, navigate, from]);
+  }, [isAuthenticated, user, navigate, from]);
 
   const onSubmit = async (data: LoginCredentials) => {
     try {
       const result = await login(data).unwrap();
       dispatch(setCredentials(result));
       toast.success('Welcome back!');
-      navigate(from, { replace: true });
+      
+      // Redirect based on user type
+      if (result.user.user_type === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else if (result.user.user_type === 'vendor') {
+        navigate('/vendor/dashboard', { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     } catch (error: any) {
       toast.error(error?.data?.message || 'Login failed');
     }

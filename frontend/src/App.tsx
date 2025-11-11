@@ -20,55 +20,73 @@ import PaymentFailure from './pages/PaymentFailure';
 import PaymentSuccess from './pages/PaymentSuccess';
 
 // Admin Pages
+import AdminDashboard from './pages/admin/VendorDetail';
+import VendorManagement from './pages/admin/VendorManagement';
+import AdminProducts from './pages/admin/AdminProducts';
+import AdminUsers from './pages/admin/AdminUsers';
+import AdminOrders from './pages/admin/AdminOrders';
 
 // Vendor Pages
+import VendorDashboard from './pages/vendor/VendorDashboard';
+import VendorProducts from './pages/vendor/VendorProducts';
 
 import { useAppDispatch, useAppSelector } from './hooks/useTypedSelector';
 import { useGetProfileQuery } from './store/api/authApi';
 import { setCredentials } from './store/slices/authSlice';
-import AdminDashboard from './pages/admin/VendorDetail';
-import VendorManagement from './pages/admin/VendorManagement';
-import VendorDashboard from './pages/vendor/VendorDashboard';
-import VendorProducts from './pages/vendor/VendorProducts';
 
 // Role-based Route Protection
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
   
-  // if (!isAuthenticated) return <Navigate to="/login" />;
-  // if (!user) return <div>Loading user data...</div>;
-  // if (user.user_type !== 'admin') return <Navigate to="/" />;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!user) return <div>Loading user data...</div>;
+  if (user.user_type !== 'admin') return <Navigate to="/" replace />;
 
   return <>{children}</>;
 };
 
-
 const VendorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  // if (!isAuthenticated) return <Navigate to="/login" />;
-  // if (user?.user_type !== 'vendor') return <Navigate to="/" />;
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!user) return <div>Loading user data...</div>;
+  if (user.user_type !== 'vendor') return <Navigate to="/" replace />;
+  
+  return <>{children}</>;
+};
 
-  // console.log("User",user)
+const CustomerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  
+  // If user is authenticated and is admin or vendor, redirect them to their respective dashboards
+  if (isAuthenticated && user) {
+    if (user.user_type === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+    if (user.user_type === 'vendor') {
+      return <Navigate to="/vendor/dashboard" replace />;
+    }
+  }
   
   return <>{children}</>;
 };
 
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
-  const { token, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { token, isAuthenticated, user } = useAppSelector((state) => state.auth);
   
-  const { data: user } = useGetProfileQuery(undefined, {
-    skip: !token,
+  const { data: userData } = useGetProfileQuery(undefined, {
+    skip: !token || isAuthenticated,
   });
 
   useEffect(() => {
-    if (token && user && !isAuthenticated) {
+    if (token && userData && !isAuthenticated) {
       dispatch(setCredentials({
-        user,
+        user: userData,
         tokens: { access: token, refresh: '' }
       }));
     }
-  }, [token, user, isAuthenticated, dispatch]);
+  }, [token, userData, isAuthenticated, dispatch]);
 
   return (
     <ErrorBoundary>
@@ -81,20 +99,23 @@ const App: React.FC = () => {
           
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminRoute><Layout /></AdminRoute>}>
-            <Route index element={<AdminDashboard />} />
+            <Route index element={<Navigate to="/admin/dashboard" replace />} />
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="vendors" element={<VendorManagement />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="users" element={<AdminUsers />} />
+            <Route path="orders" element={<AdminOrders />} />
           </Route>
           
           {/* Vendor Routes */}
           <Route path="/vendor" element={<VendorRoute><Layout /></VendorRoute>}>
-            <Route index element={<VendorDashboard />} />
+            <Route index element={<Navigate to="/vendor/dashboard" replace />} />
             <Route path="dashboard" element={<VendorDashboard />} />
             <Route path="products" element={<VendorProducts />} />
           </Route>
           
-          {/* Customer Routes */}
-          <Route path="/" element={<Layout />}>
+          {/* Customer Routes - Only for customers */}
+          <Route path="/" element={<CustomerRoute><Layout /></CustomerRoute>}>
             <Route index element={<Home />} />
             <Route path="products" element={<Products />} />
             <Route path="products/:id" element={<ProductDetail />} />
