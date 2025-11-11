@@ -10,6 +10,8 @@ export interface VendorStats {
   pending_orders: number;
   total_revenue: number;
   commission_rate: number;
+    vendor_commission: number;
+  admin_revenue: number; 
 }
 
 export interface VendorProduct {

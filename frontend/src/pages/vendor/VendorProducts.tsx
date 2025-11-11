@@ -59,11 +59,11 @@ const VendorProducts: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900">My Products</h1>
           <p className="text-gray-600 mt-2">{products?.count || 0} products</p>
         </div>
-        <Link to="/vendor/products/add">
+        {/* <Link to="/vendor/products/add">
           <Button leftIcon={<PlusIcon className="h-5 w-5" />}>
             Add Product
           </Button>
-        </Link>
+        </Link> */}
       </div>
 
       <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
@@ -83,9 +83,9 @@ const VendorProducts: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
                   Actions
-                </th>
+                </th> */}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -138,7 +138,7 @@ const VendorProducts: React.FC = () => {
                       {product.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {/* <td className="px-6 py-4 whitespace-nowrap text-sm">
                     <div className="flex items-center gap-2">
                       <Link to={`/vendor/products/edit/${product.id}`}>
                         <Button
@@ -158,7 +158,7 @@ const VendorProducts: React.FC = () => {
                         Delete
                       </Button>
                     </div>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>

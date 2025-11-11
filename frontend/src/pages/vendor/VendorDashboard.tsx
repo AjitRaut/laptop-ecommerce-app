@@ -52,6 +52,13 @@ const VendorDashboard: React.FC = () => {
       color: "from-orange-500 to-red-500",
       link: "#",
     },
+    {
+    name: `Your Commission (${data?.stats.commission_rate || 10}%)`,
+    value: formatPrice(data?.stats.vendor_commission || 0),
+    icon: CurrencyRupeeIcon,
+    color: "from-green-500 to-emerald-500",
+    link: "#",
+  },
   ];
 
   return (
@@ -94,7 +101,7 @@ const VendorDashboard: React.FC = () => {
 
       {/* Recent Orders */}
       <div className="bg-white rounded-2xl shadow-lg p-6 mb-8">
-        <div className="flex items-center justify-between mb-6">
+        {/* <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
           <Link
             to="/vendor/orders"
@@ -102,7 +109,7 @@ const VendorDashboard: React.FC = () => {
           >
             View All
           </Link>
-        </div>
+        </div> */}
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead>
