@@ -69,5 +69,5 @@ class ProductUpdateView(generics.RetrieveUpdateDestroyAPIView):
 @api_view(['GET'])
 def featured_products(request):
     products = Product.objects.filter(is_active=True, is_featured=True)[:8]
-    serializer = ProductListSerializer(products, many=True)
+    serializer = ProductListSerializer(products, many=True, context={'request': request})
     return Response(serializer.data)
