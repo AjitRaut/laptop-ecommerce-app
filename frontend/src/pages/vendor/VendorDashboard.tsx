@@ -45,13 +45,13 @@ const VendorDashboard: React.FC = () => {
       color: "from-purple-500 to-pink-500",
       link: "/vendor/orders",
     },
-    {
-      name: "Total Revenue",
-      value: formatPrice(data?.stats.total_revenue || 0),
-      icon: CurrencyRupeeIcon,
-      color: "from-orange-500 to-red-500",
-      link: "#",
-    },
+    // {
+    //   name: "Total Revenue",
+    //   value: formatPrice(data?.stats.total_revenue || 0),
+    //   icon: CurrencyRupeeIcon,
+    //   color: "from-orange-500 to-red-500",
+    //   link: "#",
+    // },
     {
     name: `Your Commission (${data?.stats.commission_rate || 10}%)`,
     value: formatPrice(data?.stats.vendor_commission || 0),
