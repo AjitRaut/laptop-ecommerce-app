@@ -33,6 +33,55 @@ export interface VendorOrder {
   items: any[];
 }
 
+// Add a paginated response interface
+export interface PaginatedResponse<T> {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: T[];
+}
+
+// Update VendorProduct interface to match the actual API response
+export interface VendorProduct {
+  id: number;
+  name: string;
+  price: string;
+  stock_quantity: number;
+  is_active: boolean;
+  category_name: string;
+  brand_name: string;
+  primary_image?: string;
+  // Add other fields from the API response
+  brand: number;
+  category: number;
+  created_at: string;
+  description: string;
+  discount_percentage: string;
+  discounted_price: number;
+  images: Array<{
+    id: number;
+    image: string;
+    alt_text: string;
+    created_at: string;
+    is_primary: boolean;
+    product: number;
+  }>;
+  is_featured: boolean;
+  is_in_stock: boolean;
+  is_low_stock: boolean;
+  min_stock_level: number;
+  product_type: string;
+  short_description: string;
+  sku: string;
+  specifications: any[];
+  updated_at: string;
+  vendor: number;
+  warranty_months: number;
+  weight: string;
+}
+
+
+
 export const vendorApi = createApi({
   reducerPath: 'vendorApi',
   baseQuery: fetchBaseQuery({
@@ -58,7 +107,7 @@ export const vendorApi = createApi({
     }),
 
     // Products
-    getVendorProducts: builder.query<VendorProduct[], void>({
+    getVendorProducts: builder.query<PaginatedResponse<VendorProduct>, void>({
       query: () => 'products/',
       providesTags: ['VendorProducts'],
     }),

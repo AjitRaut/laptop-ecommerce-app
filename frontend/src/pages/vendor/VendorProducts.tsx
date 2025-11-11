@@ -16,9 +16,7 @@ const VendorProducts: React.FC = () => {
   const { data: products, isLoading } = useGetVendorProductsQuery();
   const [deleteProduct] = useDeleteVendorProductMutation();
   const [updateStock] = useUpdateProductStockMutation();
-  const [editingStock, setEditingStock] = useState<{
-    [key: number]: number | undefined;
-  }>({});
+  const [editingStock, setEditingStock] = useState<{ [key: number]: number | undefined }>({});
 
   const handleDelete = async (id: number, name: string) => {
     if (confirm(`Delete "${name}"?`)) {
@@ -52,12 +50,14 @@ const VendorProducts: React.FC = () => {
     );
   }
 
+  const productList = products?.results || [];
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">My Products</h1>
-          <p className="text-gray-600 mt-2">{products?.length || 0} products</p>
+          <p className="text-gray-600 mt-2">{products?.count || 0} products</p>
         </div>
         <Link to="/vendor/products/add">
           <Button leftIcon={<PlusIcon className="h-5 w-5" />}>
@@ -89,37 +89,34 @@ const VendorProducts: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {products?.map((product) => (
+              {productList.map((product:any) => (
                 <tr key={product.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <img
-                        src={product.primary_image || "/api/placeholder/80/80"}
+                        src={
+                          product.images?.find((img:any) => img.is_primary)?.image ||
+                          "/api/placeholder/80/80"
+                        }
                         alt={product.name}
                         className="h-12 w-12 rounded-lg object-cover"
                       />
                       <div className="ml-4">
-                        <p className="font-medium text-gray-900">
-                          {product.name}
-                        </p>
-                        <p className="text-sm text-gray-500">
-                          {product.category_name}
-                        </p>
+                        <p className="font-medium text-gray-900">{product.name}</p>
+                        <p className="text-sm text-gray-500">{product.category_name}</p>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <p className="font-medium text-gray-900">
-                      {formatPrice(product.price)}
+                      {formatPrice(product.discounted_price || product.price)}
                     </p>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-2">
                       <input
                         type="number"
-                        value={
-                          editingStock[product.id] ?? product.stock_quantity
-                        }
+                        value={editingStock[product.id] ?? product.stock_quantity}
                         onChange={(e) =>
                           setEditingStock({
                             ...editingStock,
@@ -130,10 +127,7 @@ const VendorProducts: React.FC = () => {
                       />
                       {editingStock[product.id] !== undefined &&
                         editingStock[product.id] !== product.stock_quantity && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleStockUpdate(product.id)}
-                          >
+                          <Button size="sm" onClick={() => handleStockUpdate(product.id)}>
                             Save
                           </Button>
                         )}
@@ -169,6 +163,10 @@ const VendorProducts: React.FC = () => {
               ))}
             </tbody>
           </table>
+
+          {productList.length === 0 && (
+            <p className="text-center text-gray-500 py-6">No products found.</p>
+          )}
         </div>
       </div>
     </div>
