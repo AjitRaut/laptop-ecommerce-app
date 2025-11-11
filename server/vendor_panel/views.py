@@ -70,10 +70,15 @@ class VendorDashboardView(generics.GenericAPIView):
             vendor_status='pending'
         ).values('order').distinct().count()
         
-        # Revenue calculation (only from paid orders)
-        total_revenue = vendor_order_items.filter(
+        # Total sales from vendor's products (only from paid orders)
+        total_sales = vendor_order_items.filter(
             order__payment_status='paid'
         ).aggregate(total=Sum('total_price'))['total'] or 0
+        
+        # **Vendor only gets commission (10% of total sales)**
+        commission_rate = float(vendor.vendor_commission_rate) if vendor.vendor_commission_rate else 10.0
+        vendor_commission = float(total_sales) * (commission_rate / 100)
+        admin_revenue = float(total_sales) - vendor_commission
         
         # Recent orders
         recent_order_ids = vendor_order_items.values_list('order_id', flat=True).distinct()[:10]
@@ -95,8 +100,10 @@ class VendorDashboardView(generics.GenericAPIView):
             'low_stock_products': low_stock_products,
             'total_orders': total_orders,
             'pending_orders': pending_orders,
-            'total_revenue': float(total_revenue),
-            'commission_rate': float(vendor.vendor_commission_rate),
+            'total_sales': float(total_sales),           # **NEW: Total product sales**
+            'commission_rate': commission_rate,          # **10%**
+            'vendor_commission': vendor_commission,      # **NEW: Vendor's 10% commission**
+            'admin_revenue': admin_revenue,              # **NEW: Admin's 90% share**
         }
         
         return Response({
@@ -104,7 +111,7 @@ class VendorDashboardView(generics.GenericAPIView):
             'recent_orders': recent_orders_data,
             'top_products': list(top_products)
         })
-
+        
 class VendorProductListView(generics.ListAPIView):
     serializer_class = VendorProductSerializer
     permission_classes = [IsVendorUser]
