@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/vendor/', include('vendor_panel.urls')),
     path('api/admin/', include('admin_panel.urls')),
     path('api/vendor/', include('vendor_panel.urls')),
+    path('api/reports/', include('reports.urls')),
 ]
 
 if settings.DEBUG:

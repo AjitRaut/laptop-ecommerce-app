@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'admin_panel',
     'payments',
     'vendor_panel',
+    'reports',
 ]
 
 TEMPLATES = [
