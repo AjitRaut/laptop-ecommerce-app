@@ -9,6 +9,7 @@ import {
   ClockIcon,
   ExclamationTriangleIcon,
   BuildingStorefrontIcon,
+  ChartBarIcon,
 } from '@heroicons/react/24/outline';
 import { useGetAdminDashboardQuery, useGetPendingVendorsQuery } from '@/store/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
@@ -63,6 +64,13 @@ const AdminDashboard: React.FC = () => {
       color: 'from-orange-500 to-red-500',
       link: '#',
     },
+    {
+      name: 'Reports',
+      value: 'View Analytics',
+      icon: ChartBarIcon,
+      color: 'from-pink-500 to-rose-500',
+      link: '/admin/dashboard/reports',
+    },
   ];
 
   return (
@@ -74,7 +82,7 @@ const AdminDashboard: React.FC = () => {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         {stats.map((stat, index) => (
           <motion.div
             key={stat.name}

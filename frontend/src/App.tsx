@@ -26,6 +26,8 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminOrders from './pages/admin/AdminOrders';
 
+// Report Pages - NEW
+
 // Vendor Pages
 import VendorDashboard from './pages/vendor/VendorDashboard';
 import VendorProducts from './pages/vendor/VendorProducts';
@@ -33,6 +35,10 @@ import VendorProducts from './pages/vendor/VendorProducts';
 import { useAppDispatch, useAppSelector } from './hooks/useTypedSelector';
 import { useGetProfileQuery } from './store/api/authApi';
 import { setCredentials } from './store/slices/authSlice';
+import ReportsOverview from './pages/admin/reports/ReportsOverview';
+import ProductReports from './pages/admin/reports/ProductReports';
+import VendorReports from './pages/admin/reports/VendorReports';
+import OrderReports from './pages/admin/reports/OrderReports';
 
 // Role-based Route Protection
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -98,14 +104,24 @@ const App: React.FC = () => {
           <Route path="/vendor-register" element={<VendorRegister />} />
           
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminRoute><Layout /></AdminRoute>}>
-            <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            <Route path="dashboard" element={<AdminDashboard />} />
-            <Route path="vendors" element={<VendorManagement />} />
-            <Route path="products" element={<AdminProducts />} />
-            <Route path="users" element={<AdminUsers />} />
-            <Route path="orders" element={<AdminOrders />} />
-          </Route>
+<Route path="/admin" element={<AdminRoute><Layout /></AdminRoute>}>
+  <Route index element={<Navigate to="/admin/dashboard" replace />} />
+  
+  {/* Dashboard with nested routes */}
+  <Route path="dashboard">
+    <Route index element={<AdminDashboard />} />
+    <Route path="reports" element={<ReportsOverview />} />
+    <Route path="reports/products" element={<ProductReports />} />
+    <Route path="reports/orders" element={<OrderReports />} />
+    <Route path="reports/vendors" element={<VendorReports />} />
+  </Route>
+  
+  {/* Other admin routes */}
+  <Route path="vendors" element={<VendorManagement />} />
+  <Route path="products" element={<AdminProducts />} />
+  <Route path="users" element={<AdminUsers />} />
+  <Route path="orders" element={<AdminOrders />} />
+</Route>
           
           {/* Vendor Routes */}
           <Route path="/vendor" element={<VendorRoute><Layout /></VendorRoute>}>

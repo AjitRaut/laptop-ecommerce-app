@@ -9,6 +9,7 @@ import { ordersApi } from "./api/ordersApi";
 import { paymentsApi } from "./api/paymentsApi";
 import { adminApi } from "./api/adminApi";
 import { vendorApi } from "./api/vendorApi";
+import { reportsApi } from "./api/reportsApi"; 
 
 export const store = configureStore({
   reducer: {
@@ -16,8 +17,9 @@ export const store = configureStore({
     [productsApi.reducerPath]: productsApi.reducer,
     [ordersApi.reducerPath]: ordersApi.reducer,
     [paymentsApi.reducerPath]: paymentsApi.reducer,
-    [adminApi.reducerPath]:adminApi.reducer,
-    [vendorApi.reducerPath]:vendorApi.reducer,
+    [adminApi.reducerPath]: adminApi.reducer,
+    [vendorApi.reducerPath]: vendorApi.reducer,
+    [reportsApi.reducerPath]: reportsApi.reducer,
     auth: authReducer,
     cart: cartReducer,
     ui: uiReducer,
@@ -38,6 +40,7 @@ export const store = configureStore({
       paymentsApi.middleware,
       adminApi.middleware,
       vendorApi.middleware,
+      reportsApi.middleware, // NEW
     ),
 });
 
