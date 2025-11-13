@@ -72,7 +72,7 @@ const VendorReports: React.FC = () => {
           <p className="text-gray-600 mt-2">Vendor performance and sales analytics</p>
         </div>
         <ExportButton
-          onExport={exportReport}
+          onExport={exportReport as any}
           fileName="vendor_report"
           label="Export Vendors"
         />

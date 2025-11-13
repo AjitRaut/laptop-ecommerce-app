@@ -85,7 +85,7 @@ const OrderReports: React.FC = () => {
           <p className="text-gray-600 mt-2">Sales and order analytics</p>
         </div>
         <ExportButton
-          onExport={exportReport}
+          onExport={exportReport as any}
           fileName="order_report"
           label="Export Orders"
         />
