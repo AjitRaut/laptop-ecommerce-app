@@ -15,8 +15,14 @@ from .serializers import (
     OrderReportSerializer,
     VendorReportSerializer
 )
-import csv
 from django.http import HttpResponse
+from reportlab.lib import colors
+from reportlab.lib.pagesizes import letter, A4
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
+from io import BytesIO
 
 User = get_user_model()
 
@@ -24,6 +30,71 @@ class IsAdminUser(permissions.BasePermission):
     """Only admins can access reports"""
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.user_type == 'admin'
+
+# ==================== PDF GENERATION UTILITIES ====================
+
+def create_pdf_header(story, styles, title, subtitle=None):
+    """Create PDF header with title and subtitle"""
+    # Title
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=24,
+        textColor=colors.HexColor('#1e40af'),
+        spaceAfter=12,
+        alignment=TA_CENTER
+    )
+    story.append(Paragraph(title, title_style))
+    
+    # Subtitle
+    if subtitle:
+        subtitle_style = ParagraphStyle(
+            'CustomSubtitle',
+            parent=styles['Normal'],
+            fontSize=12,
+            textColor=colors.grey,
+            spaceAfter=20,
+            alignment=TA_CENTER
+        )
+        story.append(Paragraph(subtitle, subtitle_style))
+    
+    # Date
+    date_style = ParagraphStyle(
+        'DateStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        textColor=colors.grey,
+        spaceAfter=30,
+        alignment=TA_RIGHT
+    )
+    story.append(Paragraph(f"Generated on: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}", date_style))
+
+def create_summary_section(story, styles, summary_data):
+    """Create summary statistics section"""
+    summary_style = ParagraphStyle(
+        'SummaryStyle',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor=colors.HexColor('#374151'),
+        spaceAfter=10
+    )
+    story.append(Paragraph("Summary Statistics", summary_style))
+    
+    # Create summary table
+    summary_table_data = [[k.replace('_', ' ').title(), str(v)] for k, v in summary_data.items()]
+    summary_table = Table(summary_table_data, colWidths=[3*inch, 2*inch])
+    summary_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f9fafb')),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, -1), 11),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+        ('TOPPADDING', (0, 0), (-1, -1), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.white)
+    ]))
+    story.append(summary_table)
+    story.append(Spacer(1, 20))
 
 # ==================== PRODUCT REPORTS ====================
 
@@ -293,9 +364,9 @@ def vendor_performance_report(request):
         
         data.append({
             'vendor_id': vendor.id,
-            'vendor_name': vendor.business_name,
-            'email': vendor.email,
-            'phone': vendor.phone,
+            'vendor_name': vendor.business_name or 'N/A',
+            'email': vendor.email or 'N/A',
+            'phone': vendor.phone or 'N/A',
             'total_products': total_products,
             'active_products': active_products,
             'total_orders': total_orders,
@@ -308,88 +379,242 @@ def vendor_performance_report(request):
     
     return Response(data)
 
-# ==================== EXPORT REPORTS ====================
+# ==================== EXPORT REPORTS AS PDF ====================
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
-def export_product_report_csv(request):
-    """Export product report as CSV"""
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="product_report.csv"'
+def export_product_report_pdf(request):
+    """Export product report as PDF"""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    story = []
+    styles = getSampleStyleSheet()
     
-    writer = csv.writer(response)
-    writer.writerow([
-        'Product ID', 'Name', 'SKU', 'Category', 'Brand', 'Vendor',
-        'Price', 'Stock', 'Min Stock', 'Status', 'Created At'
-    ])
+    # Create header
+    create_pdf_header(story, styles, "Product Inventory Report", "Comprehensive product analysis")
     
+    # Get products data
     products = Product.objects.select_related('category', 'brand', 'vendor').all()
     
-    for product in products:
-        writer.writerow([
-            product.id,
-            product.name,
+    # Apply filters
+    category = request.query_params.get('category')
+    brand = request.query_params.get('brand')
+    vendor = request.query_params.get('vendor')
+    is_low_stock = request.query_params.get('is_low_stock')
+    
+    if category:
+        products = products.filter(category_id=category)
+    if brand:
+        products = products.filter(brand_id=brand)
+    if vendor:
+        products = products.filter(vendor_id=vendor)
+    if is_low_stock == 'true':
+        products = products.filter(stock_quantity__lte=F('min_stock_level'))
+    
+    # Summary statistics
+    total_products = products.count()
+    active_products = products.filter(is_active=True).count()
+    low_stock = products.filter(stock_quantity__lte=F('min_stock_level')).count()
+    total_value = sum(float(p.price) * p.stock_quantity for p in products)
+    
+    summary_data = {
+        'Total Products': total_products,
+        'Active Products': active_products,
+        'Low Stock Products': low_stock,
+        'Total Inventory Value': f"Rs {total_value:,.2f}"
+    }
+    create_summary_section(story, styles, summary_data)
+    
+    # Products table
+    section_style = ParagraphStyle(
+        'SectionStyle',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor=colors.HexColor('#374151'),
+        spaceAfter=10
+    )
+    story.append(Paragraph("Product Details", section_style))
+    
+    # Table data
+    data = [['SKU', 'Name', 'Category', 'Brand', 'Stock', 'Price', 'Value']]
+    
+    for product in products[:50]:  # Limit to 50 for PDF
+        inventory_value = float(product.price) * product.stock_quantity
+        data.append([
             product.sku,
+            product.name[:30] + '...' if len(product.name) > 30 else product.name,
             product.category.name,
             product.brand.name,
-            product.vendor.business_name if product.vendor else 'N/A',
-            float(product.price),
-            product.stock_quantity,
-            product.min_stock_level,
-            'Active' if product.is_active else 'Inactive',
-            product.created_at.strftime('%Y-%m-%d')
+            str(product.stock_quantity),
+            f"Rs {float(product.price):,.0f}",
+            f"Rs {inventory_value:,.0f}"
         ])
+    
+    # Create table
+    table = Table(data, colWidths=[0.8*inch, 2*inch, 1*inch, 1*inch, 0.7*inch, 0.9*inch, 0.9*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#3b82f6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('ALIGN', (4, 1), (6, -1), 'RIGHT'),
+    ]))
+    
+    story.append(table)
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="product_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
     
     return response
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
-def export_order_report_csv(request):
-    """Export order report as CSV"""
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="order_report.csv"'
+def export_order_report_pdf(request):
+    """Export order report as PDF"""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    story = []
+    styles = getSampleStyleSheet()
     
-    writer = csv.writer(response)
-    writer.writerow([
-        'Order ID', 'Customer', 'Email', 'Total Amount', 'Status',
-        'Payment Status', 'Created At'
-    ])
+    # Create header
+    create_pdf_header(story, styles, "Order Sales Report", "Detailed order and revenue analysis")
     
+    # Get orders data
     orders = Order.objects.select_related('user').all()
     
-    for order in orders:
-        writer.writerow([
-            order.order_id,
-            order.user.get_full_name(),
-            order.user.email,
-            float(order.final_amount),
-            order.status,
-            order.payment_status,
-            order.created_at.strftime('%Y-%m-%d %H:%M')
+    # Apply filters
+    date_from = request.query_params.get('date_from')
+    date_to = request.query_params.get('date_to')
+    status_filter = request.query_params.get('status')
+    payment_status = request.query_params.get('payment_status')
+    
+    if date_from:
+        orders = orders.filter(created_at__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__lte=date_to)
+    if status_filter:
+        orders = orders.filter(status=status_filter)
+    if payment_status:
+        orders = orders.filter(payment_status=payment_status)
+    
+    # Summary statistics
+    total_orders = orders.count()
+    total_revenue = orders.filter(payment_status='paid').aggregate(
+        total=Sum('final_amount'))['total'] or Decimal('0.00')
+    avg_order = orders.aggregate(avg=Avg('final_amount'))['avg'] or Decimal('0.00')
+    
+    summary_data = {
+        'Total Orders': total_orders,
+        'Total Revenue': f"Rs {float(total_revenue):,.2f}",
+        'Average Order Value': f"Rs {float(avg_order):,.2f}",
+        'Paid Orders': orders.filter(payment_status='paid').count(),
+        'Pending Orders': orders.filter(status='pending').count()
+    }
+    create_summary_section(story, styles, summary_data)
+    
+    # Orders table
+    section_style = ParagraphStyle(
+        'SectionStyle',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor=colors.HexColor('#374151'),
+        spaceAfter=10
+    )
+    story.append(Paragraph("Order Details", section_style))
+    
+    # Table data
+    data = [['Order ID', 'Customer', 'Amount', 'Status', 'Payment', 'Date']]
+    
+    for order in orders[:50]:  # Limit to 50
+        data.append([
+            order.order_id[:10],
+            order.user.email[:25],
+            f"Rs {float(order.final_amount):,.0f}",
+            order.status.title(),
+            order.payment_status.title(),
+            order.created_at.strftime('%Y-%m-%d')
         ])
+    
+    # Create table
+    table = Table(data, colWidths=[1.2*inch, 2*inch, 1*inch, 1*inch, 1*inch, 1*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#10b981')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('ALIGN', (2, 1), (2, -1), 'RIGHT'),
+    ]))
+    
+    story.append(table)
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="order_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
     
     return response
 
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
-def export_vendor_report_csv(request):
-    """Export vendor report as CSV"""
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="vendor_report.csv"'
+def export_vendor_report_pdf(request):
+    """Export vendor report as PDF"""
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=A4, topMargin=0.5*inch, bottomMargin=0.5*inch)
+    story = []
+    styles = getSampleStyleSheet()
     
-    writer = csv.writer(response)
-    writer.writerow([
-        'Vendor ID', 'Business Name', 'Email', 'Phone', 'Total Products',
-        'Active Products', 'Total Orders', 'Total Sales', 'Commission Rate',
-        'Vendor Commission', 'Joined Date'
-    ])
+    # Create header
+    create_pdf_header(story, styles, "Vendor Performance Report", "Vendor sales and commission analysis")
     
+    # Get vendors data
     vendors = User.objects.filter(user_type='vendor', is_vendor_approved=True)
     
-    for vendor in vendors:
+    # Calculate totals
+    total_vendors = vendors.count()
+    total_products = Product.objects.filter(vendor__in=vendors).count()
+    
+    summary_data = {
+        'Total Vendors': total_vendors,
+        'Total Products': total_products,
+        'Active Vendors': vendors.filter(is_active=True).count()
+    }
+    create_summary_section(story, styles, summary_data)
+    
+    # Vendor table
+    section_style = ParagraphStyle(
+        'SectionStyle',
+        parent=styles['Heading2'],
+        fontSize=16,
+        textColor=colors.HexColor('#374151'),
+        spaceAfter=10
+    )
+    story.append(Paragraph("Vendor Performance Details", section_style))
+    
+    # Table data
+    data = [['Vendor', 'Email', 'Products', 'Orders', 'Sales', 'Commission']]
+    
+    for vendor in vendors[:40]:  # Limit to 40
         total_products = Product.objects.filter(vendor=vendor).count()
-        active_products = Product.objects.filter(vendor=vendor, is_active=True).count()
-        
         vendor_items = OrderItem.objects.filter(vendor=vendor)
         total_orders = vendor_items.values('order').distinct().count()
         total_sales = vendor_items.filter(
@@ -399,19 +624,44 @@ def export_vendor_report_csv(request):
         commission_rate = float(vendor.vendor_commission_rate or 10.0)
         commission = float(total_sales) * (commission_rate / 100)
         
-        writer.writerow([
-            vendor.id,
-            vendor.business_name,
-            vendor.email,
-            vendor.phone or 'N/A',
-            total_products,
-            active_products,
-            total_orders,
-            float(total_sales),
-            commission_rate,
-            round(commission, 2),
-            vendor.created_at.strftime('%Y-%m-%d')
+        # Safe handling of None values
+        vendor_name = (vendor.business_name or 'N/A')[:25]
+        vendor_email = (vendor.email or 'N/A')[:25]
+        
+        data.append([
+            vendor_name,
+            vendor_email,
+            str(total_products),
+            str(total_orders),
+            "Rs {:,.0f}".format(float(total_sales)),
+            "Rs {:,.0f}".format(commission)
         ])
+    
+    # Create table
+    table = Table(data, colWidths=[1.5*inch, 1.8*inch, 0.8*inch, 0.8*inch, 1*inch, 1*inch])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#8b5cf6')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 1, colors.grey),
+        ('ALIGN', (2, 1), (5, -1), 'RIGHT'),
+    ]))
+    
+    story.append(table)
+    
+    # Build PDF
+    doc.build(story)
+    buffer.seek(0)
+    
+    response = HttpResponse(buffer, content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="vendor_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
     
     return response
 

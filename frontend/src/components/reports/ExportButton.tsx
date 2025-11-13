@@ -8,13 +8,15 @@ interface ExportButtonProps {
   fileName: string;
   label?: string;
   variant?: 'primary' | 'secondary' | 'outline';
+  fileType?: 'pdf' | 'csv';
 }
 
 const ExportButton: React.FC<ExportButtonProps> = ({
   onExport,
   fileName,
-  label = 'Export CSV',
+  label = 'Export PDF',
   variant = 'outline',
+  fileType = 'pdf',
 }) => {
   const [isExporting, setIsExporting] = useState(false);
 
@@ -25,14 +27,23 @@ const ExportButton: React.FC<ExportButtonProps> = ({
 
       const result = await onExport();
       
-      // Create blob from the response
-      const blob = result.data || result;
+      // Get blob from the response
+      let blob: Blob;
+      if (result.data instanceof Blob) {
+        blob = result.data;
+      } else if (result instanceof Blob) {
+        blob = result;
+      } else {
+        throw new Error('Invalid response format');
+      }
+      
+      // Create download URL
       const url = window.URL.createObjectURL(blob);
       
       // Create temporary link and trigger download
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.csv`;
+      link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.${fileType}`;
       document.body.appendChild(link);
       link.click();
       
@@ -40,10 +51,10 @@ const ExportButton: React.FC<ExportButtonProps> = ({
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success('Report exported successfully!', { id: 'export' });
-    } catch (error) {
+      toast.success('Report downloaded successfully!', { id: 'export' });
+    } catch (error: any) {
       console.error('Export error:', error);
-      toast.error('Failed to export report', { id: 'export' });
+      toast.error(error?.message || 'Failed to download report', { id: 'export' });
     } finally {
       setIsExporting(false);
     }

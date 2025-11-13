@@ -48,6 +48,10 @@ const ProductReports: React.FC = () => {
     setFilters({});
   };
 
+  const handleExport = async () => {
+    return exportReport(filters as any);
+  };
+
   if (summaryLoading) {
     return (
       <div className="flex justify-center items-center h-96">
@@ -98,9 +102,10 @@ const ProductReports: React.FC = () => {
           <p className="text-gray-600 mt-2">Comprehensive product inventory analysis</p>
         </div>
         <ExportButton
-          onExport={exportReport}
+          onExport={handleExport}
           fileName="product_report"
-          label="Export Products"
+          label="Export PDF"
+          fileType="pdf"
         />
       </div>
 

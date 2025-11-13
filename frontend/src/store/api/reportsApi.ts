@@ -2,6 +2,9 @@ import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
 import BASE_URL from '@/config/apiConfig';
 import { RootState } from '../store';
 
+/** ==============================
+ *  Types & Interfaces
+ *  ============================== */
 export interface ProductReportSummary {
   summary: {
     total_products: number;
@@ -117,21 +120,22 @@ export interface ReportFilters {
   payment_status?: string;
 }
 
+/** ==============================
+ *  Reports API
+ *  ============================== */
 export const reportsApi = createApi({
   reducerPath: 'reportsApi',
   baseQuery: fetchBaseQuery({
     baseUrl: `${BASE_URL}reports/`,
     prepareHeaders: (headers, { getState }) => {
       const token = (getState() as RootState).auth.token;
-      if (token) {
-        headers.set('authorization', `Bearer ${token}`);
-      }
+      if (token) headers.set('authorization', `Bearer ${token}`);
       return headers;
     },
   }),
   tagTypes: ['ProductReport', 'OrderReport', 'VendorReport', 'ReportLogs'],
   endpoints: (builder) => ({
-    // Product Reports
+    // ================= PRODUCT REPORTS =================
     getProductReportSummary: builder.query<ProductReportSummary, ReportFilters>({
       query: (filters) => ({
         url: 'products/summary/',
@@ -148,14 +152,15 @@ export const reportsApi = createApi({
       providesTags: ['ProductReport'],
     }),
 
-    exportProductReport: builder.query<Blob, void>({
-      query: () => ({
-        url: 'products/export/',
+    exportProductReport: builder.query<Blob, ReportFilters>({
+      query: (filters) => ({
+        url: 'products/export/pdf/',
+        params: filters,
         responseHandler: (response) => response.blob(),
       }),
     }),
 
-    // Order Reports
+    // ================= ORDER REPORTS =================
     getOrderReportSummary: builder.query<OrderReportSummary, ReportFilters>({
       query: (filters) => ({
         url: 'orders/summary/',
@@ -172,27 +177,29 @@ export const reportsApi = createApi({
       providesTags: ['VendorReport'],
     }),
 
-    exportOrderReport: builder.query<Blob, void>({
-      query: () => ({
-        url: 'orders/export/',
+    exportOrderReport: builder.query<Blob, ReportFilters>({
+      query: (filters) => ({
+        url: 'orders/export/pdf/',
+        params: filters,
         responseHandler: (response) => response.blob(),
       }),
     }),
 
-    // Vendor Reports
+    // ================= VENDOR REPORTS =================
     getVendorPerformance: builder.query<VendorPerformance[], void>({
       query: () => 'vendors/performance/',
       providesTags: ['VendorReport'],
     }),
 
-    exportVendorReport: builder.query<Blob, void>({
-      query: () => ({
-        url: 'vendors/export/',
+    exportVendorReport: builder.query<Blob, ReportFilters>({
+      query: (filters) => ({
+        url: 'vendors/export/pdf/',
+        params: filters,
         responseHandler: (response) => response.blob(),
       }),
     }),
 
-    // Report Logs
+    // ================= REPORT LOGS =================
     getReportLogs: builder.query<ReportLog[], void>({
       query: () => 'logs/',
       providesTags: ['ReportLogs'],
@@ -200,6 +207,9 @@ export const reportsApi = createApi({
   }),
 });
 
+/** ==============================
+ *  Hooks Export
+ *  ============================== */
 export const {
   useGetProductReportSummaryQuery,
   useGetProductStockReportQuery,
