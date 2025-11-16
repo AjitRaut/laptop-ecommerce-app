@@ -29,16 +29,31 @@ import { formatPrice } from '@/utils/formatters';
 const VendorReports: React.FC = () => {
   const [filters, setFilters] = useState<Record<string, string>>({});
   
-  const { data: performanceData, isLoading: performanceLoading } = useGetVendorPerformanceQuery();
-  const { data: salesData, isLoading: salesLoading } = useGetSalesByVendorQuery(filters);
+  // Pass filters to both queries now
+  const { data: performanceData, isLoading: performanceLoading, isFetching: performanceFetching } = useGetVendorPerformanceQuery(filters as any);
+  const { data: salesData, isLoading: salesLoading, isFetching: salesFetching } = useGetSalesByVendorQuery(filters);
   const [exportReport] = useLazyExportVendorReportQuery();
 
   const handleFilterChange = (key: string, value: string) => {
-    setFilters(prev => ({ ...prev, [key]: value }));
+    setFilters(prev => {
+      const newFilters = { ...prev };
+      
+      if (value) {
+        newFilters[key] = value;
+      } else {
+        delete newFilters[key];
+      }
+      
+      return newFilters;
+    });
   };
 
   const handleClearFilters = () => {
     setFilters({});
+  };
+
+  const handleExport = async () => {
+    return exportReport(filters as any);
   };
 
   if (performanceLoading) {
@@ -63,6 +78,8 @@ const VendorReports: React.FC = () => {
     products: vendor.total_products,
   })) || [];
 
+  const isFetching = performanceFetching || salesFetching;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
@@ -72,19 +89,28 @@ const VendorReports: React.FC = () => {
           <p className="text-gray-600 mt-2">Vendor performance and sales analytics</p>
         </div>
         <ExportButton
-          onExport={exportReport as any}
+          onExport={handleExport}
           fileName="vendor_report"
           label="Export Vendors"
         />
       </div>
 
-      {/* Filters */}
+      {/* Filters - Now with period support */}
       <ReportFilters
         filters={filters}
         onFilterChange={handleFilterChange}
         onClearFilters={handleClearFilters}
+        showPeriodFilter={true}
         showDateFilters={true}
       />
+
+      {/* Loading overlay when refetching */}
+      {isFetching && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-center gap-2">
+          <LoadingSpinner size="sm" />
+          <span className="text-sm text-blue-800">Updating report...</span>
+        </div>
+      )}
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
@@ -129,7 +155,14 @@ const VendorReports: React.FC = () => {
             </div>
           </div>
           <h3 className="text-2xl font-bold text-gray-900">{formatPrice(totalSales)}</h3>
-          <p className="text-sm text-gray-600">Total Sales</p>
+          <p className="text-sm text-gray-600">
+            Total Sales
+            {filters.period && (
+              <span className="block text-xs text-gray-500 mt-1">
+                ({filters.period.replace(/_/g, ' ')})
+              </span>
+            )}
+          </p>
         </motion.div>
 
         <motion.div
@@ -144,7 +177,14 @@ const VendorReports: React.FC = () => {
             </div>
           </div>
           <h3 className="text-2xl font-bold text-gray-900">{formatPrice(totalCommission)}</h3>
-          <p className="text-sm text-gray-600">Total Commission</p>
+          <p className="text-sm text-gray-600">
+            Total Commission
+            {filters.period && (
+              <span className="block text-xs text-gray-500 mt-1">
+                ({filters.period.replace(/_/g, ' ')})
+              </span>
+            )}
+          </p>
         </motion.div>
       </div>
 
@@ -155,18 +195,34 @@ const VendorReports: React.FC = () => {
         transition={{ delay: 0.4 }}
         className="bg-white rounded-2xl shadow-lg p-6 mb-8"
       >
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Top Vendors by Sales</h2>
-        <ResponsiveContainer width="100%" height={400}>
-          <BarChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
-            <YAxis />
-            <Tooltip formatter={(value) => formatPrice(Number(value))} />
-            <Legend />
-            <Bar dataKey="sales" fill="#3b82f6" name="Sales" />
-            <Bar dataKey="commission" fill="#10b981" name="Commission" />
-          </BarChart>
-        </ResponsiveContainer>
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          Top Vendors by Sales
+          {filters.period && (
+            <span className="text-sm font-normal text-gray-600 ml-2">
+              ({filters.period.replace(/_/g, ' ')})
+            </span>
+          )}
+        </h2>
+        {chartData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={400}>
+            <BarChart data={chartData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="name" angle={-45} textAnchor="end" height={100} />
+              <YAxis />
+              <Tooltip formatter={(value) => formatPrice(Number(value))} />
+              <Legend />
+              <Bar dataKey="sales" fill="#3b82f6" name="Sales" />
+              <Bar dataKey="commission" fill="#10b981" name="Commission" />
+            </BarChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="flex items-center justify-center h-96 text-gray-500">
+            <div className="text-center">
+              <BuildingStorefrontIcon className="h-16 w-16 mx-auto mb-4 text-gray-300" />
+              <p>No vendor sales data available for selected period</p>
+            </div>
+          </div>
+        )}
       </motion.div>
 
       {/* Sales by Vendor Table */}
@@ -181,69 +237,85 @@ const VendorReports: React.FC = () => {
           transition={{ delay: 0.5 }}
           className="bg-white rounded-2xl shadow-lg p-6 mb-8"
         >
-          <h2 className="text-xl font-bold text-gray-900 mb-6">Sales by Vendor</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead>
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Vendor
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Orders
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Items Sold
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Total Sales
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Commission Rate
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Vendor Commission
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                    Admin Revenue
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200">
-                {salesData?.map((vendor) => (
-                  <tr key={vendor.vendor_id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {vendor.vendor_name}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {vendor.vendor_email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {vendor.total_orders}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {vendor.total_items_sold}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {formatPrice(vendor.total_sales)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                      {vendor.commission_rate}%
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
-                      {formatPrice(vendor.vendor_commission)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-                      {formatPrice(vendor.admin_revenue)}
-                    </td>
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
+            Sales by Vendor
+            {filters.period && (
+              <span className="text-sm font-normal text-gray-600 ml-2">
+                ({filters.period.replace(/_/g, ' ')})
+              </span>
+            )}
+          </h2>
+          {salesData && salesData.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead>
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Vendor
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Email
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Orders
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Items Sold
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Total Sales
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Commission Rate
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Vendor Commission
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                      Admin Revenue
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {salesData.map((vendor) => (
+                    <tr key={vendor.vendor_id} className="hover:bg-gray-50">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {vendor.vendor_name}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {vendor.vendor_email}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {vendor.total_orders}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {vendor.total_items_sold}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        {formatPrice(vendor.total_sales)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                        {vendor.commission_rate}%
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">
+                        {formatPrice(vendor.vendor_commission)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
+                        {formatPrice(vendor.admin_revenue)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12 text-gray-500">
+              <div className="text-center">
+                <ShoppingBagIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+                <p>No sales data available for selected period</p>
+              </div>
+            </div>
+          )}
         </motion.div>
       )}
 
@@ -254,68 +326,84 @@ const VendorReports: React.FC = () => {
         transition={{ delay: 0.6 }}
         className="bg-white rounded-2xl shadow-lg p-6"
       >
-        <h2 className="text-xl font-bold text-gray-900 mb-6">Vendor Performance</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead>
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Vendor
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Total Products
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Active Products
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Total Orders
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Pending Orders
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Total Sales
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                  Joined Date
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {performanceData?.map((vendor) => (
-                <tr key={vendor.vendor_id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {vendor.vendor_name}
-                      </div>
-                      <div className="text-xs text-gray-500">{vendor.email}</div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {vendor.total_products}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {vendor.active_products}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {vendor.total_orders}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {vendor.pending_orders}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                    {formatPrice(vendor.total_sales)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                    {new Date(vendor.joined_date).toLocaleDateString()}
-                  </td>
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          Vendor Performance
+          {filters.period && (
+            <span className="text-sm font-normal text-gray-600 ml-2">
+              ({filters.period.replace(/_/g, ' ')})
+            </span>
+          )}
+        </h2>
+        {performanceData && performanceData.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead>
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Vendor
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Total Products
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Active Products
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Total Orders
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Pending Orders
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Total Sales
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                    Joined Date
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {performanceData.map((vendor) => (
+                  <tr key={vendor.vendor_id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900">
+                          {vendor.vendor_name}
+                        </div>
+                        <div className="text-xs text-gray-500">{vendor.email}</div>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {vendor.total_products}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {vendor.active_products}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {vendor.total_orders}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {vendor.pending_orders}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      {formatPrice(vendor.total_sales)}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                      {new Date(vendor.joined_date).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="flex items-center justify-center py-12 text-gray-500">
+            <div className="text-center">
+              <BuildingStorefrontIcon className="h-12 w-12 mx-auto mb-3 text-gray-300" />
+              <p>No vendor performance data available</p>
+            </div>
+          </div>
+        )}
       </motion.div>
     </div>
   );

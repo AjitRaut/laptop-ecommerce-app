@@ -3,7 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.db.models import Sum, Count, Avg, Q, F
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, datetime
 from decimal import Decimal
 from products.models import Product, Category, Brand
 from orders.models import Order, OrderItem
@@ -30,6 +30,87 @@ class IsAdminUser(permissions.BasePermission):
     """Only admins can access reports"""
     def has_permission(self, request, view):
         return request.user and request.user.is_authenticated and request.user.user_type == 'admin'
+
+# ==================== TIME PERIOD FILTER UTILITY ====================
+
+def get_date_range_from_period(period):
+    """
+    Get date range based on period parameter
+    Returns (date_from, date_to) tuple
+    """
+    now = timezone.now()
+    
+    if period == 'today':
+        date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_to = now
+    elif period == 'yesterday':
+        yesterday = now - timedelta(days=1)
+        date_from = yesterday.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_to = yesterday.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'this_week':
+        # Start of current week (Monday)
+        date_from = now - timedelta(days=now.weekday())
+        date_from = date_from.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_to = now
+    elif period == 'last_week':
+        # Last week (Monday to Sunday)
+        last_monday = now - timedelta(days=now.weekday() + 7)
+        date_from = last_monday.replace(hour=0, minute=0, second=0, microsecond=0)
+        date_to = (last_monday + timedelta(days=6)).replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'this_month':
+        date_from = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        date_to = now
+    elif period == 'last_month':
+        # First day of last month
+        first_of_this_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        last_day_of_last_month = first_of_this_month - timedelta(days=1)
+        date_from = last_day_of_last_month.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        date_to = last_day_of_last_month.replace(hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'this_year':
+        date_from = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        date_to = now
+    elif period == 'last_year':
+        last_year = now.year - 1
+        date_from = now.replace(year=last_year, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+        date_to = now.replace(year=last_year, month=12, day=31, hour=23, minute=59, second=59, microsecond=999999)
+    elif period == 'last_7_days':
+        date_from = now - timedelta(days=7)
+        date_to = now
+    elif period == 'last_30_days':
+        date_from = now - timedelta(days=30)
+        date_to = now
+    elif period == 'last_90_days':
+        date_from = now - timedelta(days=90)
+        date_to = now
+    else:
+        # No period filter
+        return None, None
+    
+    return date_from, date_to
+
+def apply_date_filters(queryset, request, date_field='created_at'):
+    """
+    Apply date filters to queryset based on period or custom date range
+    """
+    period = request.query_params.get('period')
+    date_from = request.query_params.get('date_from')
+    date_to = request.query_params.get('date_to')
+    
+    # Priority: period parameter > custom date range
+    if period:
+        period_date_from, period_date_to = get_date_range_from_period(period)
+        if period_date_from and period_date_to:
+            queryset = queryset.filter(
+                **{f'{date_field}__gte': period_date_from, f'{date_field}__lte': period_date_to}
+            )
+    elif date_from or date_to:
+        # Use custom date range
+        if date_from:
+            queryset = queryset.filter(**{f'{date_field}__gte': date_from})
+        if date_to:
+            queryset = queryset.filter(**{f'{date_field}__lte': date_to})
+    
+    return queryset
 
 # ==================== PDF GENERATION UTILITIES ====================
 
@@ -112,6 +193,9 @@ def product_report_summary(request):
     
     products = Product.objects.all()
     
+    # Apply date filters (for products created within period)
+    products = apply_date_filters(products, request, 'created_at')
+    
     if category:
         products = products.filter(category_id=category)
     if brand:
@@ -178,6 +262,9 @@ def product_stock_report(request):
     """Detailed stock report"""
     products = Product.objects.select_related('category', 'brand', 'vendor').all()
     
+    # Apply date filters
+    products = apply_date_filters(products, request, 'created_at')
+    
     # Apply filters
     is_low_stock = request.query_params.get('is_low_stock')
     if is_low_stock == 'true':
@@ -206,19 +293,15 @@ def product_stock_report(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def order_report_summary(request):
-    """Get order summary statistics"""
-    # Date filters
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
+    """Get order summary statistics with period filters"""
     status_filter = request.query_params.get('status')
     payment_status = request.query_params.get('payment_status')
     
     orders = Order.objects.all()
     
-    if date_from:
-        orders = orders.filter(created_at__gte=date_from)
-    if date_to:
-        orders = orders.filter(created_at__lte=date_to)
+    # Apply date/period filters
+    orders = apply_date_filters(orders, request, 'created_at')
+    
     if status_filter:
         orders = orders.filter(status=status_filter)
     if payment_status:
@@ -243,10 +326,8 @@ def order_report_summary(request):
         total=Sum('final_amount')
     ).order_by('-count')
     
-    # Daily sales (last 30 days)
-    thirty_days_ago = timezone.now() - timedelta(days=30)
+    # Daily sales for the filtered period
     daily_sales = orders.filter(
-        created_at__gte=thirty_days_ago,
         payment_status='paid'
     ).extra(
         select={'date': 'DATE(created_at)'}
@@ -287,18 +368,28 @@ def order_report_summary(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def sales_by_vendor_report(request):
-    """Sales breakdown by vendor"""
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
+    """Sales breakdown by vendor with period filters"""
     order_items = OrderItem.objects.filter(
         order__payment_status='paid'
     ).select_related('vendor', 'order')
     
-    if date_from:
-        order_items = order_items.filter(order__created_at__gte=date_from)
-    if date_to:
-        order_items = order_items.filter(order__created_at__lte=date_to)
+    # Apply date/period filters on related order
+    period = request.query_params.get('period')
+    date_from = request.query_params.get('date_from')
+    date_to = request.query_params.get('date_to')
+    
+    if period:
+        period_date_from, period_date_to = get_date_range_from_period(period)
+        if period_date_from and period_date_to:
+            order_items = order_items.filter(
+                order__created_at__gte=period_date_from,
+                order__created_at__lte=period_date_to
+            )
+    elif date_from or date_to:
+        if date_from:
+            order_items = order_items.filter(order__created_at__gte=date_from)
+        if date_to:
+            order_items = order_items.filter(order__created_at__lte=date_to)
     
     # Group by vendor
     vendor_sales = order_items.values(
@@ -340,8 +431,23 @@ def sales_by_vendor_report(request):
 @api_view(['GET'])
 @permission_classes([IsAdminUser])
 def vendor_performance_report(request):
-    """Comprehensive vendor performance report"""
+    """Comprehensive vendor performance report with period filters"""
     vendors = User.objects.filter(user_type='vendor', is_vendor_approved=True)
+    
+    # Get date range for filtering order items
+    period = request.query_params.get('period')
+    date_from = request.query_params.get('date_from')
+    date_to = request.query_params.get('date_to')
+    
+    date_filter_from = None
+    date_filter_to = None
+    
+    if period:
+        date_filter_from, date_filter_to = get_date_range_from_period(period)
+    elif date_from:
+        date_filter_from = date_from
+    elif date_to:
+        date_filter_to = date_to
     
     data = []
     for vendor in vendors:
@@ -349,8 +455,20 @@ def vendor_performance_report(request):
         total_products = Product.objects.filter(vendor=vendor).count()
         active_products = Product.objects.filter(vendor=vendor, is_active=True).count()
         
-        # Order stats
+        # Order stats with date filtering
         vendor_items = OrderItem.objects.filter(vendor=vendor)
+        
+        # Apply date filters if provided
+        if date_filter_from and date_filter_to:
+            vendor_items = vendor_items.filter(
+                order__created_at__gte=date_filter_from,
+                order__created_at__lte=date_filter_to
+            )
+        elif date_filter_from:
+            vendor_items = vendor_items.filter(order__created_at__gte=date_filter_from)
+        elif date_filter_to:
+            vendor_items = vendor_items.filter(order__created_at__lte=date_filter_to)
+        
         total_orders = vendor_items.values('order').distinct().count()
         total_sales = vendor_items.filter(
             order__payment_status='paid'
@@ -397,6 +515,7 @@ def export_product_report_pdf(request):
     products = Product.objects.select_related('category', 'brand', 'vendor').all()
     
     # Apply filters
+    products = apply_date_filters(products, request, 'created_at')
     category = request.query_params.get('category')
     brand = request.query_params.get('brand')
     vendor = request.query_params.get('vendor')
@@ -494,15 +613,10 @@ def export_order_report_pdf(request):
     orders = Order.objects.select_related('user').all()
     
     # Apply filters
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
+    orders = apply_date_filters(orders, request, 'created_at')
     status_filter = request.query_params.get('status')
     payment_status = request.query_params.get('payment_status')
     
-    if date_from:
-        orders = orders.filter(created_at__gte=date_from)
-    if date_to:
-        orders = orders.filter(created_at__lte=date_to)
     if status_filter:
         orders = orders.filter(status=status_filter)
     if payment_status:

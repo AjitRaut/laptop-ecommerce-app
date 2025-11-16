@@ -1,5 +1,5 @@
 import React from 'react';
-import { FunnelIcon, XMarkIcon } from '@heroicons/react/24/outline';
+import { FunnelIcon, XMarkIcon, CalendarIcon, ClockIcon } from '@heroicons/react/24/outline';
 import Button from '@/components/common/Button';
 
 interface FilterOption {
@@ -12,6 +12,7 @@ interface ReportFiltersProps {
   onFilterChange: (key: string, value: string) => void;
   onClearFilters: () => void;
   showDateFilters?: boolean;
+  showPeriodFilter?: boolean;
   showCategoryFilter?: boolean;
   showBrandFilter?: boolean;
   showVendorFilter?: boolean;
@@ -28,6 +29,7 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
   onFilterChange,
   onClearFilters,
   showDateFilters = true,
+  showPeriodFilter = true,
   showCategoryFilter = false,
   showBrandFilter = false,
   showVendorFilter = false,
@@ -39,6 +41,22 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
   vendors = [],
 }) => {
   const hasActiveFilters = Object.values(filters).some(value => value !== '');
+
+  // Period options
+  const periodOptions = [
+    { label: 'All Time', value: '' },
+    { label: 'Today', value: 'today' },
+    { label: 'Yesterday', value: 'yesterday' },
+    { label: 'This Week', value: 'this_week' },
+    { label: 'Last Week', value: 'last_week' },
+    { label: 'This Month', value: 'this_month' },
+    { label: 'Last Month', value: 'last_month' },
+    { label: 'This Year', value: 'this_year' },
+    { label: 'Last Year', value: 'last_year' },
+    { label: 'Last 7 Days', value: 'last_7_days' },
+    { label: 'Last 30 Days', value: 'last_30_days' },
+    { label: 'Last 90 Days', value: 'last_90_days' },
+  ];
 
   const orderStatuses = [
     { label: 'Pending', value: 'pending' },
@@ -54,6 +72,20 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
     { label: 'Pending', value: 'pending' },
     { label: 'Failed', value: 'failed' },
   ];
+
+  const handlePeriodChange = (value: string) => {
+    if (value) {
+      // Set period and clear custom date filters
+      onFilterChange('period', value);
+      onFilterChange('date_from', '');
+      onFilterChange('date_to', '');
+    } else {
+      // Clear period filter
+      onFilterChange('period', '');
+    }
+  };
+
+  const isPeriodActive = filters.period && filters.period !== '';
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-6 mb-6">
@@ -75,11 +107,33 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Date Filters */}
-        {showDateFilters && (
+        {/* Period Filter */}
+        {showPeriodFilter && (
+          <div>
+            <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+              <ClockIcon className="h-4 w-4" />
+              Time Period
+            </label>
+            <select
+              value={filters.period || ''}
+              onChange={(e) => handlePeriodChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {periodOptions.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Date Filters - Only show if period is not active */}
+        {showDateFilters && !isPeriodActive && (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <CalendarIcon className="h-4 w-4" />
                 From Date
               </label>
               <input
@@ -90,7 +144,8 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <CalendarIcon className="h-4 w-4" />
                 To Date
               </label>
               <input
@@ -225,6 +280,50 @@ const ReportFilters: React.FC<ReportFiltersProps> = ({
           </div>
         )}
       </div>
+
+      {/* Active Filters Display */}
+      {hasActiveFilters && (
+        <div className="mt-4 pt-4 border-t border-gray-200">
+          <p className="text-sm text-gray-600 mb-2">Active filters:</p>
+          <div className="flex flex-wrap gap-2">
+            {Object.entries(filters).map(([key, value]) => {
+              if (!value) return null;
+              
+              // Get readable label for period
+              let displayValue = value;
+              if (key === 'period') {
+                const option = periodOptions.find(opt => opt.value === value);
+                displayValue = option?.label || value;
+              }
+              
+              return (
+                <span
+                  key={key}
+                  className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full"
+                >
+                  <span className="font-medium">{key.replace(/_/g, ' ')}:</span>
+                  <span>{displayValue}</span>
+                  <button
+                    onClick={() => onFilterChange(key, '')}
+                    className="ml-1 hover:text-blue-900"
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                </span>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Helper Text */}
+      {showPeriodFilter && isPeriodActive && showDateFilters && (
+        <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <p className="text-sm text-blue-800">
+            <span className="font-medium">📅 Tip:</span> Period filter is active. Custom date range is disabled. Select "All Time" to use custom dates.
+          </p>
+        </div>
+      )}
     </div>
   );
 };

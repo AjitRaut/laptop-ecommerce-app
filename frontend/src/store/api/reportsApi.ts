@@ -109,13 +109,34 @@ export interface ReportLog {
   created_at: string;
 }
 
-export interface ReportFilters {
+export type PeriodFilter = 
+  | 'today' 
+  | 'yesterday' 
+  | 'this_week' 
+  | 'last_week' 
+  | 'this_month' 
+  | 'last_month' 
+  | 'this_year' 
+  | 'last_year'
+  | 'last_7_days'
+  | 'last_30_days'
+  | 'last_90_days';
+
+export interface ReportFiltersType {
+  // Period filter (takes priority over custom dates)
+  period?: PeriodFilter | '';
+  
+  // Custom date range (only used if period is not set)
+  date_from?: string;
+  date_to?: string;
+  
+  // Product filters
   category?: string;
   brand?: string;
   vendor?: string;
   is_low_stock?: string;
-  date_from?: string;
-  date_to?: string;
+  
+  // Order filters
   status?: string;
   payment_status?: string;
 }
@@ -136,7 +157,7 @@ export const reportsApi = createApi({
   tagTypes: ['ProductReport', 'OrderReport', 'VendorReport', 'ReportLogs'],
   endpoints: (builder) => ({
     // ================= PRODUCT REPORTS =================
-    getProductReportSummary: builder.query<ProductReportSummary, ReportFilters>({
+    getProductReportSummary: builder.query<ProductReportSummary, ReportFiltersType>({
       query: (filters) => ({
         url: 'products/summary/',
         params: filters,
@@ -144,7 +165,7 @@ export const reportsApi = createApi({
       providesTags: ['ProductReport'],
     }),
 
-    getProductStockReport: builder.query<ProductStockItem[], ReportFilters>({
+    getProductStockReport: builder.query<ProductStockItem[], ReportFiltersType>({
       query: (filters) => ({
         url: 'products/stock/',
         params: filters,
@@ -152,7 +173,7 @@ export const reportsApi = createApi({
       providesTags: ['ProductReport'],
     }),
 
-    exportProductReport: builder.query<Blob, ReportFilters>({
+    exportProductReport: builder.query<Blob, ReportFiltersType>({
       query: (filters) => ({
         url: 'products/export/pdf/',
         params: filters,
@@ -161,7 +182,7 @@ export const reportsApi = createApi({
     }),
 
     // ================= ORDER REPORTS =================
-    getOrderReportSummary: builder.query<OrderReportSummary, ReportFilters>({
+    getOrderReportSummary: builder.query<OrderReportSummary, ReportFiltersType>({
       query: (filters) => ({
         url: 'orders/summary/',
         params: filters,
@@ -169,7 +190,7 @@ export const reportsApi = createApi({
       providesTags: ['OrderReport'],
     }),
 
-    getSalesByVendor: builder.query<VendorSalesReport[], ReportFilters>({
+    getSalesByVendor: builder.query<VendorSalesReport[], ReportFiltersType>({
       query: (filters) => ({
         url: 'orders/by-vendor/',
         params: filters,
@@ -177,7 +198,7 @@ export const reportsApi = createApi({
       providesTags: ['VendorReport'],
     }),
 
-    exportOrderReport: builder.query<Blob, ReportFilters>({
+    exportOrderReport: builder.query<Blob, ReportFiltersType>({
       query: (filters) => ({
         url: 'orders/export/pdf/',
         params: filters,
@@ -186,12 +207,15 @@ export const reportsApi = createApi({
     }),
 
     // ================= VENDOR REPORTS =================
-    getVendorPerformance: builder.query<VendorPerformance[], void>({
-      query: () => 'vendors/performance/',
+    getVendorPerformance: builder.query<VendorPerformance[], ReportFiltersType>({
+      query: (filters) => ({
+        url: 'vendors/performance/',
+        params: filters,
+      }),
       providesTags: ['VendorReport'],
     }),
 
-    exportVendorReport: builder.query<Blob, ReportFilters>({
+    exportVendorReport: builder.query<Blob, ReportFiltersType>({
       query: (filters) => ({
         url: 'vendors/export/pdf/',
         params: filters,
