@@ -20,45 +20,45 @@ const ExportButton: React.FC<ExportButtonProps> = ({
 }) => {
   const [isExporting, setIsExporting] = useState(false);
 
-  const handleExport = async () => {
-    try {
-      setIsExporting(true);
-      toast.loading('Generating report...', { id: 'export' });
+const handleExport = async () => {
+  try {
+    setIsExporting(true);
+    toast.loading('Generating report...', { id: 'export' });
 
-      const result = await onExport();
-      
-      // Get blob from the response
-      let blob: Blob;
-      if (result.data instanceof Blob) {
-        blob = result.data;
-      } else if (result instanceof Blob) {
-        blob = result;
-      } else {
-        throw new Error('Invalid response format');
-      }
-      
-      // Create download URL
-      const url = window.URL.createObjectURL(blob);
-      
-      // Create temporary link and trigger download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${fileName}_${new Date().toISOString().split('T')[0]}.${fileType}`;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Cleanup
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      toast.success('Report downloaded successfully!', { id: 'export' });
-    } catch (error: any) {
-      console.error('Export error:', error);
-      toast.error(error?.message || 'Failed to download report', { id: 'export' });
-    } finally {
-      setIsExporting(false);
+    const result = await onExport();
+    
+    let blob: Blob;
+    if (result.data instanceof Blob) {
+      blob = result.data;
+    } else if (result instanceof Blob) {
+      blob = result;
+    } else {
+      throw new Error('Invalid response format');
     }
-  };
+    
+    // Create blob URL and open in new tab for printing
+    const url = window.URL.createObjectURL(blob);
+    const printWindow = window.open(url, '_blank');
+    
+    if (printWindow) {
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+    
+    // Cleanup after 1 minute
+    setTimeout(() => {
+      window.URL.revokeObjectURL(url);
+    }, 60000);
+    
+    toast.success('Report opened for printing!', { id: 'export' });
+  } catch (error: any) {
+    console.error('Export error:', error);
+    toast.error(error?.message || 'Failed to open report', { id: 'export' });
+  } finally {
+    setIsExporting(false);
+  }
+};
 
   return (
     <Button

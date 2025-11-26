@@ -25,6 +25,8 @@ from reportlab.lib.enums import TA_CENTER, TA_RIGHT, TA_LEFT
 from io import BytesIO
 
 User = get_user_model()
+SHOP_NAME = "LaptopWorld"
+SHOP_TAGLINE = "Premium Laptops & Accessories"
 
 class IsAdminUser(permissions.BasePermission):
     """Only admins can access reports"""
@@ -115,14 +117,38 @@ def apply_date_filters(queryset, request, date_field='created_at'):
 # ==================== PDF GENERATION UTILITIES ====================
 
 def create_pdf_header(story, styles, title, subtitle=None):
-    """Create PDF header with title and subtitle"""
-    # Title
+    """Create PDF header with shop name and title"""
+    # Shop Name
+    shop_style = ParagraphStyle(
+        'ShopName',
+        parent=styles['Heading1'],
+        fontSize=28,
+        textColor=colors.HexColor('#1e40af'),
+        spaceAfter=5,
+        alignment=TA_CENTER,
+        fontName='Helvetica-Bold'
+    )
+    story.append(Paragraph(SHOP_NAME, shop_style))
+    
+    # Shop Tagline
+    tagline_style = ParagraphStyle(
+        'Tagline',
+        parent=styles['Normal'],
+        fontSize=11,
+        textColor=colors.grey,
+        spaceAfter=20,
+        alignment=TA_CENTER
+    )
+    story.append(Paragraph(SHOP_TAGLINE, tagline_style))
+    story.append(Spacer(1, 10))
+    
+    # Report Title
     title_style = ParagraphStyle(
         'CustomTitle',
         parent=styles['Heading1'],
-        fontSize=24,
+        fontSize=20,  # Reduced from 24
         textColor=colors.HexColor('#1e40af'),
-        spaceAfter=12,
+        spaceAfter=10,
         alignment=TA_CENTER
     )
     story.append(Paragraph(title, title_style))
@@ -132,9 +158,9 @@ def create_pdf_header(story, styles, title, subtitle=None):
         subtitle_style = ParagraphStyle(
             'CustomSubtitle',
             parent=styles['Normal'],
-            fontSize=12,
+            fontSize=11,
             textColor=colors.grey,
-            spaceAfter=20,
+            spaceAfter=15,
             alignment=TA_CENTER
         )
         story.append(Paragraph(subtitle, subtitle_style))
@@ -143,9 +169,9 @@ def create_pdf_header(story, styles, title, subtitle=None):
     date_style = ParagraphStyle(
         'DateStyle',
         parent=styles['Normal'],
-        fontSize=10,
+        fontSize=9,
         textColor=colors.grey,
-        spaceAfter=30,
+        spaceAfter=25,
         alignment=TA_RIGHT
     )
     story.append(Paragraph(f"Generated on: {timezone.now().strftime('%B %d, %Y at %I:%M %p')}", date_style))
@@ -177,6 +203,22 @@ def create_summary_section(story, styles, summary_data):
     story.append(summary_table)
     story.append(Spacer(1, 20))
 
+def add_footer(canvas, doc):
+    """Add footer to each page"""
+    canvas.saveState()
+    
+    # Footer line
+    canvas.setStrokeColor(colors.grey)
+    canvas.setLineWidth(0.5)
+    canvas.line(0.5*inch, 0.4*inch, doc.width + inch, 0.4*inch)
+    
+    # Footer text
+    canvas.setFont('Helvetica', 8)
+    canvas.setFillColor(colors.grey)
+    canvas.drawString(0.5*inch, 0.25*inch, f"{SHOP_NAME} - {SHOP_TAGLINE}")
+    canvas.drawRightString(doc.width + inch, 0.25*inch, f"Page {canvas.getPageNumber()}")
+    
+    canvas.restoreState()
 # ==================== PRODUCT REPORTS ====================
 
 @api_view(['GET'])
@@ -589,11 +631,11 @@ def export_product_report_pdf(request):
     story.append(table)
     
     # Build PDF
-    doc.build(story)
+    doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="product_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
+    response['Content-Disposition'] = f'inline; filename="product_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
     
     return response
 
@@ -680,11 +722,11 @@ def export_order_report_pdf(request):
     story.append(table)
     
     # Build PDF
-    doc.build(story)
+    doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="order_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
+    response['Content-Disposition'] = f'inline; filename="order_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
     
     return response
 
@@ -771,11 +813,11 @@ def export_vendor_report_pdf(request):
     story.append(table)
     
     # Build PDF
-    doc.build(story)
+    doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
     response = HttpResponse(buffer, content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="vendor_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
+    response['Content-Disposition'] = f'inline; filename="vendor_report_{timezone.now().strftime("%Y%m%d")}.pdf"'
     
     return response
 
