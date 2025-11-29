@@ -16,6 +16,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { logout } from '@/store/slices/authSlice';
 import { useAppDispatch } from '@/hooks/useTypedSelector';
+import logo from "./../../../public/laptopWorld_Logo.png"
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -43,14 +44,12 @@ const Header: React.FC = () => {
           {/* Logo */}
           <div className="flex items-center">
             <Link to="/" className="flex items-center group">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-2 mr-3 group-hover:scale-105 transition-transform">
-                <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20 6H4c-1.11 0-2 .89-2 2v8c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm0 10H4V8h16v8z"/>
-                </svg>
-              </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                LaptopWorld
-              </span>
+              <img 
+                src={logo} 
+                alt="LaptopWorld Logo" 
+                className="h-10 w-auto mr-3 group-hover:scale-105 transition-transform object-contain"
+              />
+          
             </Link>
           </div>
 

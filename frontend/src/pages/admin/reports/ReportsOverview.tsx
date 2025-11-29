@@ -5,6 +5,10 @@ import {
   ShoppingBagIcon,
   ShoppingCartIcon,
   BuildingStorefrontIcon,
+  UsersIcon,
+  CurrencyRupeeIcon,
+  UserGroupIcon,
+  TagIcon,
   ClockIcon,
   DocumentTextIcon,
   CalendarIcon,
@@ -40,6 +44,47 @@ const ReportsOverview: React.FC = () => {
       color: 'from-purple-500 to-pink-500',
       link: '/admin/dashboard/reports/vendors',
       stats: ['Sales by Vendor', 'Commission Breakdown', 'Performance Metrics'],
+    },
+    {
+      title: 'User Reports',
+      description: 'User registration, activity, and engagement analytics',
+      icon: UsersIcon,
+      color: 'from-indigo-500 to-blue-500',
+      link: '/admin/dashboard/reports/users',
+      stats: ['Total Users', 'Active Users', 'Top Customers'],
+    },
+    {
+      title: 'Sales & Revenue',
+      description: 'Comprehensive revenue analysis and payment trends',
+      icon: CurrencyRupeeIcon,
+      color: 'from-emerald-500 to-green-500',
+      link: '/admin/dashboard/reports/sales',
+      stats: ['Total Revenue', 'Tax Collected', 'Net Revenue'],
+    },
+    {
+      title: 'Customer Analytics',
+      description: 'Customer behavior, spending patterns, and segmentation',
+      icon: UserGroupIcon,
+      color: 'from-rose-500 to-pink-500',
+      link: '/admin/dashboard/reports/customers',
+      stats: ['Customer Segments', 'Top Spenders', 'Location Breakdown'],
+    },
+    {
+      title: 'Category & Brand',
+      description: 'Performance analysis by product categories and brands',
+      icon: TagIcon,
+      color: 'from-amber-500 to-orange-500',
+      link: '/admin/dashboard/reports/category-brand',
+      stats: ['Category Revenue', 'Brand Performance', 'Units Sold'],
+    },
+    {
+      title: 'Individual Vendor',
+      description: 'Detailed performance report for specific vendors',
+      icon: BuildingStorefrontIcon,
+      color: 'from-violet-500 to-purple-500',
+      link: '/admin/dashboard/reports/vendor/:id',
+      stats: ['Vendor Products', 'Sales History', 'Commission Details'],
+      note: 'Access from Vendor Management',
     },
   ];
 
@@ -99,33 +144,75 @@ const ReportsOverview: React.FC = () => {
     return periodLabels[filters.period] || filters.period;
   };
 
+  const getReportIcon = (type: string) => {
+    switch (type) {
+      case 'product':
+        return ShoppingBagIcon;
+      case 'order':
+        return ShoppingCartIcon;
+      case 'vendor':
+        return BuildingStorefrontIcon;
+      case 'user':
+        return UsersIcon;
+      case 'sales':
+        return CurrencyRupeeIcon;
+      case 'customer':
+        return UserGroupIcon;
+      case 'analytics':
+        return TagIcon;
+      default:
+        return DocumentTextIcon;
+    }
+  };
+
+  const getReportColor = (type: string) => {
+    switch (type) {
+      case 'product':
+        return 'bg-blue-100 text-blue-600';
+      case 'order':
+        return 'bg-green-100 text-green-600';
+      case 'vendor':
+        return 'bg-purple-100 text-purple-600';
+      case 'user':
+        return 'bg-indigo-100 text-indigo-600';
+      case 'sales':
+        return 'bg-emerald-100 text-emerald-600';
+      case 'customer':
+        return 'bg-rose-100 text-rose-600';
+      case 'analytics':
+        return 'bg-amber-100 text-amber-600';
+      default:
+        return 'bg-gray-100 text-gray-600';
+    }
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
         <p className="text-gray-600 mt-2">
-          Comprehensive business intelligence and reporting dashboard with flexible time periods
+          Comprehensive business intelligence dashboard with 8 powerful report types
         </p>
       </div>
 
       {/* Report Type Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         {reportCards.map((card, index) => (
           <motion.div
             key={card.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
+            transition={{ delay: index * 0.05 }}
           >
-            <Link to={card.link}>
-              <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all hover:scale-105 cursor-pointer h-full">
+            {card.note ? (
+              <div className="bg-white rounded-2xl shadow-lg p-6 h-full border-2 border-dashed border-gray-300">
                 <div className={`w-14 h-14 rounded-lg bg-gradient-to-r ${card.color} flex items-center justify-center mb-4`}>
                   <card.icon className="h-7 w-7 text-white" />
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{card.title}</h3>
                 <p className="text-sm text-gray-600 mb-4">{card.description}</p>
-                <div className="space-y-2">
+                <div className="space-y-2 mb-4">
                   {card.stats.map((stat) => (
                     <div key={stat} className="flex items-center gap-2 text-sm text-gray-500">
                       <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
@@ -133,8 +220,27 @@ const ReportsOverview: React.FC = () => {
                     </div>
                   ))}
                 </div>
+                <p className="text-xs text-blue-600 font-medium">{card.note}</p>
               </div>
-            </Link>
+            ) : (
+              <Link to={card.link}>
+                <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition-all hover:scale-105 cursor-pointer h-full">
+                  <div className={`w-14 h-14 rounded-lg bg-gradient-to-r ${card.color} flex items-center justify-center mb-4`}>
+                    <card.icon className="h-7 w-7 text-white" />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">{card.title}</h3>
+                  <p className="text-sm text-gray-600 mb-4">{card.description}</p>
+                  <div className="space-y-2">
+                    {card.stats.map((stat) => (
+                      <div key={stat} className="flex items-center gap-2 text-sm text-gray-500">
+                        <div className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                        {stat}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </Link>
+            )}
           </motion.div>
         ))}
       </div>
@@ -143,7 +249,7 @@ const ReportsOverview: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.4 }}
         className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8"
       >
         {features.map((feature, index) => (
@@ -151,7 +257,7 @@ const ReportsOverview: React.FC = () => {
             key={feature.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 + index * 0.1 }}
+            transition={{ delay: 0.4 + index * 0.1 }}
             className={`bg-gradient-to-br ${feature.gradient} rounded-2xl p-6 border ${feature.border}`}
           >
             <div className="flex items-center gap-3 mb-3">
@@ -169,7 +275,7 @@ const ReportsOverview: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
+        transition={{ delay: 0.8 }}
         className="bg-gradient-to-r from-indigo-50 to-blue-50 rounded-2xl p-6 mb-8 border border-indigo-100"
       >
         <div className="flex items-start gap-4">
@@ -204,7 +310,7 @@ const ReportsOverview: React.FC = () => {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
+        transition={{ delay: 0.9 }}
         className="bg-white rounded-2xl shadow-lg p-6"
       >
         <div className="flex items-center justify-between mb-6">
@@ -220,6 +326,8 @@ const ReportsOverview: React.FC = () => {
           <div className="space-y-3">
             {reportLogs.slice(0, 10).map((log) => {
               const periodLabel = getPeriodLabel(log.filters);
+              const Icon = getReportIcon(log.report_type);
+              const colorClass = getReportColor(log.report_type);
               
               return (
                 <div
@@ -227,18 +335,8 @@ const ReportsOverview: React.FC = () => {
                   className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                 >
                   <div className="flex items-center gap-4 flex-1">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                      log.report_type === 'product' ? 'bg-blue-100 text-blue-600' :
-                      log.report_type === 'order' ? 'bg-green-100 text-green-600' :
-                      'bg-purple-100 text-purple-600'
-                    }`}>
-                      {log.report_type === 'product' ? (
-                        <ShoppingBagIcon className="h-5 w-5" />
-                      ) : log.report_type === 'order' ? (
-                        <ShoppingCartIcon className="h-5 w-5" />
-                      ) : (
-                        <BuildingStorefrontIcon className="h-5 w-5" />
-                      )}
+                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0 ${colorClass}`}>
+                      <Icon className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900 capitalize">

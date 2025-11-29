@@ -99,9 +99,155 @@ export interface VendorPerformance {
   joined_date: string;
 }
 
+export interface UserReportSummary {
+  summary: {
+    total_users: number;
+    active_users: number;
+    inactive_users: number;
+    customers: number;
+    vendors: number;
+    admins: number;
+    customers_with_orders: number;
+  };
+  top_customers: Array<{
+    user__id: number;
+    user__email: string;
+    user__first_name: string;
+    user__last_name: string;
+    total_orders: number;
+    total_spent: number;
+  }>;
+}
+
+export interface SalesReportSummary {
+  summary: {
+    total_revenue: number;
+    total_orders: number;
+    average_order_value: number;
+    total_tax_collected: number;
+    total_shipping_revenue: number;
+    total_discounts_given: number;
+    net_revenue: number;
+  };
+  payment_methods: Array<{
+    payment_method: string;
+    count: number;
+    revenue: number;
+  }>;
+  daily_revenue: Array<{
+    date: string;
+    orders: number;
+    revenue: number;
+  }>;
+  monthly_revenue: Array<{
+    month: number;
+    orders: number;
+    revenue: number;
+  }>;
+  top_revenue_products: Array<{
+    product__name: string;
+    product__sku: string;
+    quantity: number;
+    revenue: number;
+  }>;
+}
+
+export interface CustomerReportSummary {
+  summary: {
+    total_customers: number;
+    active_customers: number;
+    verified_customers: number;
+    customers_with_orders: number;
+    one_time_buyers: number;
+    repeat_customers: number;
+    loyal_customers: number;
+  };
+  top_customers: Array<{
+    user__id: number;
+    user__email: string;
+    user__first_name: string;
+    user__last_name: string;
+    total_orders: number;
+    total_spent: number;
+    avg_order_value: number;
+  }>;
+  location_breakdown: Array<{
+    city: string;
+    state: string;
+    count: number;
+  }>;
+}
+
+export interface CategoryBrandReport {
+  category_performance: Array<{
+    category_id: number;
+    category_name: string;
+    total_products: number;
+    active_products: number;
+    total_stock: number;
+    units_sold: number;
+    revenue: number;
+  }>;
+  brand_performance: Array<{
+    brand_id: number;
+    brand_name: string;
+    total_products: number;
+    active_products: number;
+    units_sold: number;
+    revenue: number;
+  }>;
+}
+
+export interface IndividualVendorReport {
+  vendor_info: {
+    id: number;
+    business_name: string;
+    email: string;
+    phone: string;
+    commission_rate: number;
+    joined_date: string;
+    is_active: boolean;
+  };
+  product_summary: {
+    total_products: number;
+    active_products: number;
+    low_stock_products: number;
+    category_breakdown: Array<{
+      category__name: string;
+      count: number;
+    }>;
+  };
+  sales_summary: {
+    total_orders: number;
+    total_items_sold: number;
+    total_sales: number;
+    vendor_commission: number;
+    admin_share: number;
+    status_breakdown: Array<{
+      vendor_status: string;
+      count: number;
+    }>;
+  };
+  top_products: Array<{
+    product__name: string;
+    product__sku: string;
+    quantity_sold: number;
+    revenue: number;
+  }>;
+  recent_orders: Array<{
+    order_id: string;
+    product_name: string;
+    quantity: number;
+    price: number;
+    total: number;
+    status: string;
+    order_date: string;
+  }>;
+}
+
 export interface ReportLog {
   id: number;
-  report_type: 'product' | 'order' | 'vendor' | 'sales';
+  report_type: 'product' | 'order' | 'vendor' | 'sales' | 'user' | 'customer' | 'analytics';
   generated_by: number;
   generated_by_name: string;
   filters: any;
@@ -123,22 +269,17 @@ export type PeriodFilter =
   | 'last_90_days';
 
 export interface ReportFiltersType {
-  // Period filter (takes priority over custom dates)
   period?: PeriodFilter | '';
-  
-  // Custom date range (only used if period is not set)
   date_from?: string;
   date_to?: string;
-  
-  // Product filters
   category?: string;
   brand?: string;
   vendor?: string;
   is_low_stock?: string;
-  
-  // Order filters
   status?: string;
   payment_status?: string;
+  user_type?: string;
+  is_active?: string;
 }
 
 /** ==============================
@@ -154,7 +295,7 @@ export const reportsApi = createApi({
       return headers;
     },
   }),
-  tagTypes: ['ProductReport', 'OrderReport', 'VendorReport', 'ReportLogs'],
+  tagTypes: ['ProductReport', 'OrderReport', 'VendorReport', 'UserReport', 'SalesReport', 'CustomerReport', 'CategoryBrandReport', 'ReportLogs'],
   endpoints: (builder) => ({
     // ================= PRODUCT REPORTS =================
     getProductReportSummary: builder.query<ProductReportSummary, ReportFiltersType>({
@@ -223,6 +364,91 @@ export const reportsApi = createApi({
       }),
     }),
 
+    // ================= USER REPORTS =================
+    getUserReportSummary: builder.query<UserReportSummary, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'users/summary/',
+        params: filters,
+      }),
+      providesTags: ['UserReport'],
+    }),
+
+    exportUserReport: builder.query<Blob, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'users/export/pdf/',
+        params: filters,
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
+
+    // ================= SALES REPORTS =================
+    getSalesReportSummary: builder.query<SalesReportSummary, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'sales/summary/',
+        params: filters,
+      }),
+      providesTags: ['SalesReport'],
+    }),
+
+    exportSalesReport: builder.query<Blob, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'sales/export/pdf/',
+        params: filters,
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
+
+    // ================= CUSTOMER REPORTS =================
+    getCustomerReportSummary: builder.query<CustomerReportSummary, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'customers/summary/',
+        params: filters,
+      }),
+      providesTags: ['CustomerReport'],
+    }),
+
+    exportCustomerReport: builder.query<Blob, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'customers/export/pdf/',
+        params: filters,
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
+
+    // ================= CATEGORY & BRAND REPORTS =================
+    getCategoryBrandReport: builder.query<CategoryBrandReport, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'analytics/category-brand/',
+        params: filters,
+      }),
+      providesTags: ['CategoryBrandReport'],
+    }),
+
+    exportCategoryBrandReport: builder.query<Blob, ReportFiltersType>({
+      query: (filters) => ({
+        url: 'analytics/category-brand/export/pdf/',
+        params: filters,
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
+
+    // ================= INDIVIDUAL VENDOR REPORT =================
+    getIndividualVendorReport: builder.query<IndividualVendorReport, { vendorId: number; filters?: ReportFiltersType }>({
+      query: ({ vendorId, filters }) => ({
+        url: `vendors/${vendorId}/`,
+        params: filters,
+      }),
+      providesTags: ['VendorReport'],
+    }),
+
+    exportIndividualVendorReport: builder.query<Blob, { vendorId: number; filters?: ReportFiltersType }>({
+      query: ({ vendorId, filters }) => ({
+        url: `vendors/${vendorId}/export/pdf/`,
+        params: filters,
+        responseHandler: (response) => response.blob(),
+      }),
+    }),
+
     // ================= REPORT LOGS =================
     getReportLogs: builder.query<ReportLog[], void>({
       query: () => 'logs/',
@@ -243,5 +469,15 @@ export const {
   useLazyExportOrderReportQuery,
   useGetVendorPerformanceQuery,
   useLazyExportVendorReportQuery,
+  useGetUserReportSummaryQuery,
+  useLazyExportUserReportQuery,
+  useGetSalesReportSummaryQuery,
+  useLazyExportSalesReportQuery,
+  useGetCustomerReportSummaryQuery,
+  useLazyExportCustomerReportQuery,
+  useGetCategoryBrandReportQuery,
+  useLazyExportCategoryBrandReportQuery,
+  useGetIndividualVendorReportQuery,
+  useLazyExportIndividualVendorReportQuery,
   useGetReportLogsQuery,
 } = reportsApi;

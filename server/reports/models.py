@@ -9,7 +9,10 @@ class ReportLog(models.Model):
         ('product', 'Product Report'),
         ('order', 'Order Report'),
         ('vendor', 'Vendor Report'),
+        ('user', 'User Report'),
         ('sales', 'Sales Report'),
+        ('customer', 'Customer Report'),  # Add this
+        ('analytics', 'Analytics Report'),
     )
     
     report_type = models.CharField(max_length=20, choices=REPORT_TYPES)
