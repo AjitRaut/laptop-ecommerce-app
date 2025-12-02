@@ -29,9 +29,10 @@ User = get_user_model()
 SHOP_NAME = "LaptopWorld"
 SHOP_TAGLINE = "Premium Laptops & Accessories"
 SHOP_LOGO_PATH = "assets/laptopWorld_Logo.png" 
-SHOP_ADDRESS = "123 Tech Street, Electronic City, Bangalore - 560100"
-SHOP_EMAIL = "info@laptopworld.com"
-SHOP_CONTACT = "+91 98765 43210"
+SHOP_LOGO_SIGNATURE = "assets/Shop_Signature.png"
+SHOP_ADDRESS = "Viswa Naka,Satara, Maharashtra 415001"
+SHOP_EMAIL = "sagarcomputersatara@gmail.com"
+SHOP_CONTACT = "+91 8007486058"
 
 class IsAdminUser(permissions.BasePermission):
     """Only admins can access reports"""
@@ -118,6 +119,40 @@ def apply_date_filters(queryset, request, date_field='created_at'):
             queryset = queryset.filter(**{f'{date_field}__lte': date_to})
     
     return queryset
+
+def add_signature(story, styles):
+    """Add signature section at the bottom of PDF"""
+    story.append(Spacer(1, 40))
+    
+    try:
+        from reportlab.platypus import Image
+        signature_img = Image(SHOP_LOGO_SIGNATURE, width=1.5*inch, height=0.8*inch)
+        
+        # Signature label
+        sig_label = Paragraph("Authorized Signature", ParagraphStyle(
+            'SigLabel',
+            parent=styles['Normal'],
+            fontSize=9,
+            alignment=TA_RIGHT,
+            textColor=colors.grey
+        ))
+        
+        # Table with signature on right
+        sig_data = [
+            ['', sig_label],
+            ['', signature_img]
+        ]
+        sig_table = Table(sig_data, colWidths=[4*inch, 2*inch])
+        sig_table.setStyle(TableStyle([
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('VALIGN', (1, 0), (1, -1), 'MIDDLE'),
+        ]))
+        story.append(sig_table)
+        
+    except:
+        # Fallback if image not found
+        sig_style = ParagraphStyle('Sig', parent=styles['Normal'], fontSize=10, alignment=TA_RIGHT)
+        story.append(Paragraph("Authorized Signature: _________________", sig_style))
 
 # ==================== PDF GENERATION UTILITIES ====================
 
@@ -561,6 +596,8 @@ def export_user_report_pdf(request):
     story.append(table)
     
     # Build PDF
+    add_signature(story, styles)
+
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
@@ -841,6 +878,7 @@ def export_individual_vendor_pdf(request, vendor_id):
     story.append(products_table)
     
     # Build PDF
+    add_signature(story, styles)
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
@@ -1148,6 +1186,7 @@ def export_product_report_pdf(request):
     story.append(table)
     
     # Build PDF
+    add_signature(story, styles)
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
@@ -1239,6 +1278,7 @@ def export_order_report_pdf(request):
     story.append(table)
     
     # Build PDF
+    add_signature(story, styles)
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
@@ -1330,6 +1370,7 @@ def export_vendor_report_pdf(request):
     story.append(table)
     
     # Build PDF
+    add_signature(story, styles)
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
@@ -1489,7 +1530,7 @@ def export_sales_report_pdf(request):
         ('ALIGN', (2, 1), (3, -1), 'RIGHT'),
     ]))
     story.append(table)
-    
+    add_signature(story, styles)
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
@@ -1667,7 +1708,7 @@ def export_customer_report_pdf(request):
         ('ALIGN', (2, 1), (3, -1), 'RIGHT'),
     ]))
     story.append(table)
-    
+    add_signature(story, styles)
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     
@@ -1882,7 +1923,7 @@ def export_category_brand_pdf(request):
         ('ALIGN', (1, 1), (4, -1), 'RIGHT'),
     ]))
     story.append(brand_table)
-    
+    add_signature(story, styles)
     doc.build(story, onFirstPage=add_footer, onLaterPages=add_footer)
     buffer.seek(0)
     

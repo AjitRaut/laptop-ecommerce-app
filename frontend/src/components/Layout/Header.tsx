@@ -33,8 +33,8 @@ const Header: React.FC = () => {
   const navigation = [
     { name: 'Products', href: '/products' },
     { name: 'Laptops', href: '/products?category=laptop' },
-    { name: 'Accessories', href: '/products?category=accessory' },
-    { name: 'Deals', href: '/products?ordering=-discount_percentage' },
+    // { name: 'Accessories', href: '/products?category=accessory' },
+    // { name: 'Deals', href: '/products?ordering=-discount_percentage' },
   ];
 
   return (

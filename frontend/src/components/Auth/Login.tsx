@@ -149,14 +149,14 @@ const Login: React.FC = () => {
                 </label>
               </div>
 
-              <div className="text-sm">
+              {/* <div className="text-sm">
                 <Link
                   to="/forgot-password"
                   className="font-medium text-blue-600 hover:text-blue-500"
                 >
                   Forgot password?
                 </Link>
-              </div>
+              </div> */}
             </div>
 
             <Button
@@ -171,7 +171,7 @@ const Login: React.FC = () => {
           </form>
 
           {/* Divider */}
-          <div className="mt-6">
+          {/* <div className="mt-6">
             <div className="relative">
               <div className="absolute inset-0 flex items-center">
                 <div className="w-full border-t border-gray-300" />
@@ -199,7 +199,7 @@ const Login: React.FC = () => {
                 <span className="ml-2">Facebook</span>
               </button>
             </div>
-          </div>
+          </div> */}
 
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
