@@ -73,7 +73,7 @@ export interface OrderReportSummary {
 }
 
 export interface VendorSalesReport {
-  vendor_id: number;
+  vendor_id: number | null; // null = shop's own (in-house) products
   vendor_name: string;
   vendor_email: string;
   total_orders: number;
@@ -140,7 +140,7 @@ export interface SalesReportSummary {
     revenue: number;
   }>;
   monthly_revenue: Array<{
-    month: number;
+    month: string; // e.g. "Oct 2026"
     orders: number;
     revenue: number;
   }>;

@@ -114,6 +114,10 @@ CORS_ALLOW_CREDENTIALS = True
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Shop operates in India - day/week/month boundaries in reports follow IST
+TIME_ZONE = 'Asia/Kolkata'
+USE_TZ = True
+
 
 # Media Files
 MEDIA_URL = '/media/'

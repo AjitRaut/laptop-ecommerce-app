@@ -2,8 +2,10 @@ from rest_framework import generics, status, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.db.models import Sum, Count, Avg, Q, F
+from django.db.models.functions import TruncDate, TruncMonth
 from django.utils import timezone
-from datetime import timedelta, datetime
+from django.utils.dateparse import parse_date
+from datetime import timedelta, datetime, time
 from decimal import Decimal
 from products.models import Product, Category, Brand
 from orders.models import Order, OrderItem
@@ -46,8 +48,9 @@ def get_date_range_from_period(period):
     Get date range based on period parameter
     Returns (date_from, date_to) tuple
     """
-    now = timezone.now()
-    
+    # Local time (TIME_ZONE) so "today" starts at local midnight, not UTC midnight
+    now = timezone.localtime()
+
     if period == 'today':
         date_from = now.replace(hour=0, minute=0, second=0, microsecond=0)
         date_to = now
@@ -96,29 +99,61 @@ def get_date_range_from_period(period):
     
     return date_from, date_to
 
+def get_date_bounds(request):
+    """
+    Resolve the period or custom date range in the request to (date_from, date_to)
+    aware datetimes. Either may be None. Priority: period > custom date range.
+    Custom dates are whole days: date_to includes the entire end day.
+    """
+    period = request.query_params.get('period')
+    if period:
+        return get_date_range_from_period(period)
+
+    tz = timezone.get_current_timezone()
+    date_from = parse_date(request.query_params.get('date_from') or '')
+    date_to = parse_date(request.query_params.get('date_to') or '')
+
+    start = timezone.make_aware(datetime.combine(date_from, time.min), tz) if date_from else None
+    end = timezone.make_aware(datetime.combine(date_to, time.max), tz) if date_to else None
+    return start, end
+
 def apply_date_filters(queryset, request, date_field='created_at'):
     """
     Apply date filters to queryset based on period or custom date range
     """
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    # Priority: period parameter > custom date range
-    if period:
-        period_date_from, period_date_to = get_date_range_from_period(period)
-        if period_date_from and period_date_to:
-            queryset = queryset.filter(
-                **{f'{date_field}__gte': period_date_from, f'{date_field}__lte': period_date_to}
-            )
-    elif date_from or date_to:
-        # Use custom date range
-        if date_from:
-            queryset = queryset.filter(**{f'{date_field}__gte': date_from})
-        if date_to:
-            queryset = queryset.filter(**{f'{date_field}__lte': date_to})
-    
+    date_from, date_to = get_date_bounds(request)
+    if date_from:
+        queryset = queryset.filter(**{f'{date_field}__gte': date_from})
+    if date_to:
+        queryset = queryset.filter(**{f'{date_field}__lte': date_to})
     return queryset
+
+def filter_products(request):
+    """Products matching the product report filters (shared by summary, stock and PDF)"""
+    products = Product.objects.select_related('category', 'brand', 'vendor').all()
+    products = apply_date_filters(products, request, 'created_at')
+
+    category = request.query_params.get('category')
+    brand = request.query_params.get('brand')
+    vendor = request.query_params.get('vendor')
+    is_low_stock = request.query_params.get('is_low_stock')
+
+    if category:
+        products = products.filter(category_id=category)
+    if brand:
+        products = products.filter(brand_id=brand)
+    if vendor:
+        products = products.filter(vendor_id=vendor)
+    if is_low_stock == 'true':
+        products = products.filter(stock_quantity__lte=F('min_stock_level'))
+    return products
+
+def active_inventory_value(products):
+    """Stock value of active products at list price"""
+    total = products.filter(is_active=True).aggregate(
+        total=Sum(F('price') * F('stock_quantity'))
+    )['total']
+    return float(total or 0)
 
 def add_signature(story, styles):
     """Add signature section at the bottom of PDF"""
@@ -270,7 +305,7 @@ def create_summary_section(story, styles, summary_data):
         spaceAfter=10
     )
     story.append(Paragraph("Summary Statistics", summary_style))
-    
+
     # Create summary table
     summary_table_data = [[k.replace('_', ' ').title(), str(v)] for k, v in summary_data.items()]
     summary_table = Table(summary_table_data, colWidths=[3*inch, 2*inch])
@@ -286,6 +321,13 @@ def create_summary_section(story, styles, summary_data):
     ]))
     story.append(summary_table)
     story.append(Spacer(1, 20))
+
+def add_row_limit_note(story, styles, shown, total):
+    """Tell the reader when a PDF table was truncated"""
+    if total > shown:
+        note_style = ParagraphStyle('RowLimitNote', parent=styles['Normal'], fontSize=8, textColor=colors.grey)
+        story.append(Spacer(1, 6))
+        story.append(Paragraph(f"Showing first {shown} of {total} records. Use filters to narrow the list.", note_style))
 
 def add_footer(canvas, doc):
     """Add footer to each page with shop contact info"""
@@ -315,38 +357,17 @@ def add_footer(canvas, doc):
 @permission_classes([IsAdminUser])
 def product_report_summary(request):
     """Get product summary statistics"""
-    filters = {}
-    
-    # Apply filters
-    category = request.query_params.get('category')
-    brand = request.query_params.get('brand')
-    vendor = request.query_params.get('vendor')
-    is_low_stock = request.query_params.get('is_low_stock')
-    
-    products = Product.objects.all()
-    
-    # Apply date filters (for products created within period)
-    products = apply_date_filters(products, request, 'created_at')
-    
-    if category:
-        products = products.filter(category_id=category)
-    if brand:
-        products = products.filter(brand_id=brand)
-    if vendor:
-        products = products.filter(vendor_id=vendor)
-    if is_low_stock == 'true':
-        products = products.filter(stock_quantity__lte=F('min_stock_level'))
-    
-    # Calculate stats
+    products = filter_products(request)
+
+    # Calculate stats (stock alerts and value only consider active products)
+    active = products.filter(is_active=True)
     total_products = products.count()
-    active_products = products.filter(is_active=True).count()
+    active_products = active.count()
     inactive_products = products.filter(is_active=False).count()
-    low_stock = products.filter(stock_quantity__lte=F('min_stock_level')).count()
-    out_of_stock = products.filter(stock_quantity=0).count()
-    
-    total_inventory_value = sum(
-        float(p.price) * p.stock_quantity for p in products
-    )
+    low_stock = active.filter(stock_quantity__lte=F('min_stock_level')).count()
+    out_of_stock = active.filter(stock_quantity=0).count()
+
+    total_inventory_value = active_inventory_value(products)
     
     # Category breakdown
     category_stats = products.values('category__name').annotate(
@@ -364,7 +385,7 @@ def product_report_summary(request):
         count=Count('id'),
         total_stock=Sum('stock_quantity')
     ).order_by('-count')
-    
+
     data = {
         'summary': {
             'total_products': total_products,
@@ -392,16 +413,8 @@ def product_report_summary(request):
 @permission_classes([IsAdminUser])
 def product_stock_report(request):
     """Detailed stock report"""
-    products = Product.objects.select_related('category', 'brand', 'vendor').all()
-    
-    # Apply date filters
-    products = apply_date_filters(products, request, 'created_at')
-    
-    # Apply filters
-    is_low_stock = request.query_params.get('is_low_stock')
-    if is_low_stock == 'true':
-        products = products.filter(stock_quantity__lte=F('min_stock_level'))
-    
+    products = filter_products(request)
+
     data = []
     for product in products:
         data.append({
@@ -451,41 +464,14 @@ def user_report_summary(request):
     vendor_count = users.filter(user_type='vendor').count()
     admin_count = users.filter(user_type='admin').count()
     
-    # Customer stats
-    customers_with_orders = User.objects.filter(
-        user_type='customer',
-        orders__isnull=False
-    ).distinct().count()
-    
-    # Get date range for order filtering
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    date_filter_from = None
-    date_filter_to = None
-    
-    if period:
-        date_filter_from, date_filter_to = get_date_range_from_period(period)
-    elif date_from:
-        date_filter_from = date_from
-    elif date_to:
-        date_filter_to = date_to
-    
-    # Top customers by orders
-    customer_orders = Order.objects.filter(user__user_type='customer')
-    
-    if date_filter_from and date_filter_to:
-        customer_orders = customer_orders.filter(
-            created_at__gte=date_filter_from,
-            created_at__lte=date_filter_to
-        )
-    elif date_filter_from:
-        customer_orders = customer_orders.filter(created_at__gte=date_filter_from)
-    elif date_filter_to:
-        customer_orders = customer_orders.filter(created_at__lte=date_filter_to)
-    
-    top_customers = customer_orders.values(
+    # Customer orders within the selected period
+    customer_orders = apply_date_filters(
+        Order.objects.filter(user__user_type='customer'), request, 'created_at'
+    )
+    customers_with_orders = customer_orders.values('user').distinct().count()
+
+    # Top customers by spending (paid orders only)
+    top_customers = customer_orders.filter(payment_status='paid').values(
         'user__id',
         'user__email',
         'user__first_name',
@@ -535,10 +521,13 @@ def export_user_report_pdf(request):
     # Apply filters
     users = apply_date_filters(users, request, 'created_at')
     user_type = request.query_params.get('user_type')
-    
+    is_active = request.query_params.get('is_active')
+
     if user_type:
         users = users.filter(user_type=user_type)
-    
+    if is_active:
+        users = users.filter(is_active=is_active == 'true')
+
     # Summary statistics
     total_users = users.count()
     active_users = users.filter(is_active=True).count()
@@ -594,6 +583,7 @@ def export_user_report_pdf(request):
     ]))
     
     story.append(table)
+    add_row_limit_note(story, styles, 50, total_users)
     
     # Build PDF
     add_signature(story, styles)
@@ -616,22 +606,7 @@ def individual_vendor_report(request, vendor_id):
         vendor = User.objects.get(id=vendor_id, user_type='vendor')
     except User.DoesNotExist:
         return Response({'error': 'Vendor not found'}, status=status.HTTP_404_NOT_FOUND)
-    
-    # Get date range for filtering
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    date_filter_from = None
-    date_filter_to = None
-    
-    if period:
-        date_filter_from, date_filter_to = get_date_range_from_period(period)
-    elif date_from:
-        date_filter_from = date_from
-    elif date_to:
-        date_filter_to = date_to
-    
+
     # Product statistics
     all_products = Product.objects.filter(vendor=vendor)
     total_products = all_products.count()
@@ -644,24 +619,15 @@ def individual_vendor_report(request, vendor_id):
     ).order_by('-count')
     
     # Order statistics with date filtering
-    vendor_items = OrderItem.objects.filter(vendor=vendor)
-    
-    if date_filter_from and date_filter_to:
-        vendor_items = vendor_items.filter(
-            order__created_at__gte=date_filter_from,
-            order__created_at__lte=date_filter_to
-        )
-    elif date_filter_from:
-        vendor_items = vendor_items.filter(order__created_at__gte=date_filter_from)
-    elif date_filter_to:
-        vendor_items = vendor_items.filter(order__created_at__lte=date_filter_to)
-    
+    vendor_items = apply_date_filters(
+        OrderItem.objects.filter(vendor=vendor), request, 'order__created_at'
+    )
+    paid_items = vendor_items.filter(order__payment_status='paid')
+
     total_orders = vendor_items.values('order').distinct().count()
-    total_items_sold = vendor_items.aggregate(total=Sum('quantity'))['total'] or 0
-    
-    total_sales = vendor_items.filter(
-        order__payment_status='paid'
-    ).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+    total_items_sold = paid_items.aggregate(total=Sum('quantity'))['total'] or 0
+
+    total_sales = paid_items.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
     
     # Commission calculation
     commission_rate = float(vendor.vendor_commission_rate or 10.0)
@@ -674,14 +640,14 @@ def individual_vendor_report(request, vendor_id):
     ).order_by('-count')
     
     # Top selling products
-    top_products = vendor_items.values(
+    top_products = paid_items.values(
         'product__name',
         'product__sku'
     ).annotate(
         quantity_sold=Sum('quantity'),
         revenue=Sum('total_price')
     ).order_by('-quantity_sold')[:10]
-    
+
     # Recent orders
     recent_orders = vendor_items.select_related('order', 'product').order_by('-order__created_at')[:20]
     
@@ -755,22 +721,7 @@ def export_individual_vendor_pdf(request, vendor_id):
         f"Vendor Report: {vendor_name}", 
         "Detailed performance and sales analysis"
     )
-    
-    # Get date range for filtering
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    date_filter_from = None
-    date_filter_to = None
-    
-    if period:
-        date_filter_from, date_filter_to = get_date_range_from_period(period)
-    elif date_from:
-        date_filter_from = date_from
-    elif date_to:
-        date_filter_to = date_to
-    
+
     # Vendor Info Section
     info_style = ParagraphStyle(
         'InfoStyle',
@@ -806,23 +757,14 @@ def export_individual_vendor_pdf(request, vendor_id):
     
     # Calculate statistics
     all_products = Product.objects.filter(vendor=vendor)
-    vendor_items = OrderItem.objects.filter(vendor=vendor)
-    
-    if date_filter_from and date_filter_to:
-        vendor_items = vendor_items.filter(
-            order__created_at__gte=date_filter_from,
-            order__created_at__lte=date_filter_to
-        )
-    elif date_filter_from:
-        vendor_items = vendor_items.filter(order__created_at__gte=date_filter_from)
-    elif date_filter_to:
-        vendor_items = vendor_items.filter(order__created_at__lte=date_filter_to)
-    
+    vendor_items = apply_date_filters(
+        OrderItem.objects.filter(vendor=vendor), request, 'order__created_at'
+    )
+    paid_items = vendor_items.filter(order__payment_status='paid')
+
     total_products = all_products.count()
     total_orders = vendor_items.values('order').distinct().count()
-    total_sales = vendor_items.filter(
-        order__payment_status='paid'
-    ).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
+    total_sales = paid_items.aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
     
     commission_rate = float(vendor.vendor_commission_rate or 10.0)
     vendor_commission = float(total_sales) * (commission_rate / 100)
@@ -840,8 +782,8 @@ def export_individual_vendor_pdf(request, vendor_id):
     
     # Top Products Section
     story.append(Paragraph("Top Selling Products", info_style))
-    
-    top_products = vendor_items.values(
+
+    top_products = paid_items.values(
         'product__name',
         'product__sku'
     ).annotate(
@@ -926,8 +868,8 @@ def order_report_summary(request):
     # Daily sales for the filtered period
     daily_sales = orders.filter(
         payment_status='paid'
-    ).extra(
-        select={'date': 'DATE(created_at)'}
+    ).annotate(
+        date=TruncDate('created_at')
     ).values('date').annotate(
         orders=Count('id'),
         revenue=Sum('final_amount')
@@ -966,53 +908,40 @@ def order_report_summary(request):
 @permission_classes([IsAdminUser])
 def sales_by_vendor_report(request):
     """Sales breakdown by vendor with period filters"""
-    order_items = OrderItem.objects.filter(
-        order__payment_status='paid'
-    ).select_related('vendor', 'order')
-    
+    order_items = OrderItem.objects.filter(order__payment_status='paid')
+
     # Apply date/period filters on related order
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    if period:
-        period_date_from, period_date_to = get_date_range_from_period(period)
-        if period_date_from and period_date_to:
-            order_items = order_items.filter(
-                order__created_at__gte=period_date_from,
-                order__created_at__lte=period_date_to
-            )
-    elif date_from or date_to:
-        if date_from:
-            order_items = order_items.filter(order__created_at__gte=date_from)
-        if date_to:
-            order_items = order_items.filter(order__created_at__lte=date_to)
-    
-    # Group by vendor
+    order_items = apply_date_filters(order_items, request, 'order__created_at')
+
+    # Group by vendor (vendor is null for the shop's own products)
     vendor_sales = order_items.values(
         'vendor__id',
         'vendor__business_name',
-        'vendor__email'
+        'vendor__email',
+        'vendor__vendor_commission_rate'
     ).annotate(
         total_orders=Count('order', distinct=True),
         total_items_sold=Sum('quantity'),
         total_sales=Sum('total_price'),
         avg_order_value=Avg('total_price')
     ).order_by('-total_sales')
-    
+
     # Calculate commission for each vendor
     data = []
     for vendor in vendor_sales:
-        vendor_obj = User.objects.get(id=vendor['vendor__id'])
-        commission_rate = float(vendor_obj.vendor_commission_rate or 10.0)
+        is_in_house = vendor['vendor__id'] is None
+        if is_in_house:
+            commission_rate = 0.0
+        else:
+            commission_rate = float(vendor['vendor__vendor_commission_rate'] or 10.0)
         total_sales = float(vendor['total_sales'])
         commission = total_sales * (commission_rate / 100)
         admin_share = total_sales - commission
-        
+
         data.append({
             'vendor_id': vendor['vendor__id'],
-            'vendor_name': vendor['vendor__business_name'],
-            'vendor_email': vendor['vendor__email'],
+            'vendor_name': f'{SHOP_NAME} (in-house)' if is_in_house else vendor['vendor__business_name'],
+            'vendor_email': SHOP_EMAIL if is_in_house else vendor['vendor__email'],
             'total_orders': vendor['total_orders'],
             'total_items_sold': vendor['total_items_sold'],
             'total_sales': total_sales,
@@ -1030,22 +959,7 @@ def sales_by_vendor_report(request):
 def vendor_performance_report(request):
     """Comprehensive vendor performance report with period filters"""
     vendors = User.objects.filter(user_type='vendor', is_vendor_approved=True)
-    
-    # Get date range for filtering order items
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    date_filter_from = None
-    date_filter_to = None
-    
-    if period:
-        date_filter_from, date_filter_to = get_date_range_from_period(period)
-    elif date_from:
-        date_filter_from = date_from
-    elif date_to:
-        date_filter_to = date_to
-    
+
     data = []
     for vendor in vendors:
         # Product stats
@@ -1053,19 +967,10 @@ def vendor_performance_report(request):
         active_products = Product.objects.filter(vendor=vendor, is_active=True).count()
         
         # Order stats with date filtering
-        vendor_items = OrderItem.objects.filter(vendor=vendor)
-        
-        # Apply date filters if provided
-        if date_filter_from and date_filter_to:
-            vendor_items = vendor_items.filter(
-                order__created_at__gte=date_filter_from,
-                order__created_at__lte=date_filter_to
-            )
-        elif date_filter_from:
-            vendor_items = vendor_items.filter(order__created_at__gte=date_filter_from)
-        elif date_filter_to:
-            vendor_items = vendor_items.filter(order__created_at__lte=date_filter_to)
-        
+        vendor_items = apply_date_filters(
+            OrderItem.objects.filter(vendor=vendor), request, 'order__created_at'
+        )
+
         total_orders = vendor_items.values('order').distinct().count()
         total_sales = vendor_items.filter(
             order__payment_status='paid'
@@ -1109,29 +1014,13 @@ def export_product_report_pdf(request):
     create_pdf_header(story, styles, "Product Inventory Report", "Comprehensive product analysis")
     
     # Get products data
-    products = Product.objects.select_related('category', 'brand', 'vendor').all()
-    
-    # Apply filters
-    products = apply_date_filters(products, request, 'created_at')
-    category = request.query_params.get('category')
-    brand = request.query_params.get('brand')
-    vendor = request.query_params.get('vendor')
-    is_low_stock = request.query_params.get('is_low_stock')
-    
-    if category:
-        products = products.filter(category_id=category)
-    if brand:
-        products = products.filter(brand_id=brand)
-    if vendor:
-        products = products.filter(vendor_id=vendor)
-    if is_low_stock == 'true':
-        products = products.filter(stock_quantity__lte=F('min_stock_level'))
-    
+    products = filter_products(request)
+
     # Summary statistics
     total_products = products.count()
     active_products = products.filter(is_active=True).count()
-    low_stock = products.filter(stock_quantity__lte=F('min_stock_level')).count()
-    total_value = sum(float(p.price) * p.stock_quantity for p in products)
+    low_stock = products.filter(is_active=True, stock_quantity__lte=F('min_stock_level')).count()
+    total_value = active_inventory_value(products)
     
     summary_data = {
         'Total Products': total_products,
@@ -1184,6 +1073,7 @@ def export_product_report_pdf(request):
     ]))
     
     story.append(table)
+    add_row_limit_note(story, styles, 50, total_products)
     
     # Build PDF
     add_signature(story, styles)
@@ -1276,6 +1166,7 @@ def export_order_report_pdf(request):
     ]))
     
     story.append(table)
+    add_row_limit_note(story, styles, 50, total_orders)
     
     # Build PDF
     add_signature(story, styles)
@@ -1328,7 +1219,9 @@ def export_vendor_report_pdf(request):
     
     for vendor in vendors[:40]:  # Limit to 40
         total_products = Product.objects.filter(vendor=vendor).count()
-        vendor_items = OrderItem.objects.filter(vendor=vendor)
+        vendor_items = apply_date_filters(
+            OrderItem.objects.filter(vendor=vendor), request, 'order__created_at'
+        )
         total_orders = vendor_items.values('order').distinct().count()
         total_sales = vendor_items.filter(
             order__payment_status='paid'
@@ -1368,6 +1261,7 @@ def export_vendor_report_pdf(request):
     ]))
     
     story.append(table)
+    add_row_limit_note(story, styles, 40, total_vendors)
     
     # Build PDF
     add_signature(story, styles)
@@ -1408,20 +1302,23 @@ def sales_report_summary(request):
     ).order_by('-revenue')
     
     # Daily revenue trend
-    daily_revenue = orders.extra(
-        select={'date': 'DATE(created_at)'}
+    daily_revenue = orders.annotate(
+        date=TruncDate('created_at')
     ).values('date').annotate(
         orders=Count('id'),
         revenue=Sum('final_amount')
     ).order_by('date')
-    
-    # Monthly revenue (for current year)
-    monthly_revenue = orders.extra(
-        select={'month': 'EXTRACT(month FROM created_at)'}
-    ).values('month').annotate(
-        orders=Count('id'),
-        revenue=Sum('final_amount')
-    ).order_by('month')
+
+    # Monthly revenue (grouped by year + month so different years don't merge)
+    monthly_revenue = [
+        {**row, 'month': row['month'].strftime('%b %Y')}
+        for row in orders.annotate(
+            month=TruncMonth('created_at')
+        ).values('month').annotate(
+            orders=Count('id'),
+            revenue=Sum('final_amount')
+        ).order_by('month')
+    ]
     
     # Top revenue generating products
     top_revenue_products = OrderItem.objects.filter(
@@ -1439,11 +1336,12 @@ def sales_report_summary(request):
             'total_tax_collected': float(total_tax),
             'total_shipping_revenue': float(total_shipping),
             'total_discounts_given': float(total_discount),
-            'net_revenue': float(total_revenue - total_discount)
+            # Product sales only: final_amount minus GST and shipping collected
+            'net_revenue': float(total_revenue - total_tax - total_shipping)
         },
         'payment_methods': list(payment_methods),
         'daily_revenue': list(daily_revenue),
-        'monthly_revenue': list(monthly_revenue),
+        'monthly_revenue': monthly_revenue,
         'top_revenue_products': list(top_revenue_products)
     }
     
@@ -1476,15 +1374,17 @@ def export_sales_report_pdf(request):
     total_orders = orders.count()
     avg_order = orders.aggregate(avg=Avg('final_amount'))['avg'] or Decimal('0.00')
     total_tax = orders.aggregate(total=Sum('tax_amount'))['total'] or Decimal('0.00')
+    total_shipping = orders.aggregate(total=Sum('shipping_charges'))['total'] or Decimal('0.00')
     total_discount = orders.aggregate(total=Sum('discount_amount'))['total'] or Decimal('0.00')
-    
+
     summary_data = {
         'Total Revenue': f"Rs {float(total_revenue):,.2f}",
         'Total Orders': total_orders,
         'Average Order Value': f"Rs {float(avg_order):,.2f}",
         'Tax Collected': f"Rs {float(total_tax):,.2f}",
         'Discounts Given': f"Rs {float(total_discount):,.2f}",
-        'Net Revenue': f"Rs {float(total_revenue - total_discount):,.2f}"
+        'Shipping Collected': f"Rs {float(total_shipping):,.2f}",
+        'Net Revenue': f"Rs {float(total_revenue - total_tax - total_shipping):,.2f}"
     }
     create_summary_section(story, styles, summary_data)
     
@@ -1548,40 +1448,17 @@ def customer_report_summary(request):
     
     # Apply date filters
     customers = apply_date_filters(customers, request, 'created_at')
-    
-    # Get date range for orders
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    date_filter_from = None
-    date_filter_to = None
-    
-    if period:
-        date_filter_from, date_filter_to = get_date_range_from_period(period)
-    elif date_from:
-        date_filter_from = date_from
-    elif date_to:
-        date_filter_to = date_to
-    
+
     # Customer statistics
     total_customers = customers.count()
     active_customers = customers.filter(is_active=True).count()
     verified_customers = customers.filter(is_verified=True).count()
     
     # Customers with orders
-    customer_orders = Order.objects.filter(user__user_type='customer')
-    
-    if date_filter_from and date_filter_to:
-        customer_orders = customer_orders.filter(
-            created_at__gte=date_filter_from,
-            created_at__lte=date_filter_to
-        )
-    elif date_filter_from:
-        customer_orders = customer_orders.filter(created_at__gte=date_filter_from)
-    elif date_filter_to:
-        customer_orders = customer_orders.filter(created_at__lte=date_filter_to)
-    
+    customer_orders = apply_date_filters(
+        Order.objects.filter(user__user_type='customer'), request, 'created_at'
+    )
+
     customers_with_orders = customer_orders.values('user').distinct().count()
     
     # Top customers by spending
@@ -1670,9 +1547,9 @@ def export_customer_report_pdf(request):
     )
     story.append(Paragraph("Top Customers by Spending", section_style))
     
-    top_customers = Order.objects.filter(
-        user__user_type='customer',
-        payment_status='paid'
+    top_customers = apply_date_filters(
+        Order.objects.filter(user__user_type='customer', payment_status='paid'),
+        request, 'created_at'
     ).values(
         'user__email',
         'user__first_name',
@@ -1718,54 +1595,29 @@ def export_customer_report_pdf(request):
 
 # ==================== CATEGORY & BRAND REPORT ====================
 
-@api_view(['GET'])
-@permission_classes([IsAdminUser])
-def category_brand_report(request):
-    """Product performance by category and brand"""
-    
-    # Get date range for orders
-    period = request.query_params.get('period')
-    date_from = request.query_params.get('date_from')
-    date_to = request.query_params.get('date_to')
-    
-    date_filter_from = None
-    date_filter_to = None
-    
-    if period:
-        date_filter_from, date_filter_to = get_date_range_from_period(period)
-    elif date_from:
-        date_filter_from = date_from
-    elif date_to:
-        date_filter_to = date_to
-    
+def get_category_brand_data(request):
+    """Category and brand performance (paid orders in the selected period), sorted by revenue"""
+    paid_items = apply_date_filters(
+        OrderItem.objects.filter(order__payment_status='paid'), request, 'order__created_at'
+    )
+
     # Category performance
     categories = Category.objects.all()
     category_data = []
-    
+
     for category in categories:
         products = Product.objects.filter(category=category)
         total_products = products.count()
         active_products = products.filter(is_active=True).count()
         total_stock = products.aggregate(total=Sum('stock_quantity'))['total'] or 0
-        
+
         # Sales data
-        order_items = OrderItem.objects.filter(product__category=category)
-        
-        if date_filter_from and date_filter_to:
-            order_items = order_items.filter(
-                order__created_at__gte=date_filter_from,
-                order__created_at__lte=date_filter_to
-            )
-        elif date_filter_from:
-            order_items = order_items.filter(order__created_at__gte=date_filter_from)
-        elif date_filter_to:
-            order_items = order_items.filter(order__created_at__lte=date_filter_to)
-        
-        units_sold = order_items.aggregate(total=Sum('quantity'))['total'] or 0
-        revenue = order_items.filter(
-            order__payment_status='paid'
-        ).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
-        
+        sales = paid_items.filter(product__category=category).aggregate(
+            units=Sum('quantity'), revenue=Sum('total_price')
+        )
+        units_sold = sales['units'] or 0
+        revenue = sales['revenue'] or Decimal('0.00')
+
         category_data.append({
             'category_id': category.id,
             'category_name': category.name,
@@ -1786,23 +1638,12 @@ def category_brand_report(request):
         active_products = products.filter(is_active=True).count()
         
         # Sales data
-        order_items = OrderItem.objects.filter(product__brand=brand)
-        
-        if date_filter_from and date_filter_to:
-            order_items = order_items.filter(
-                order__created_at__gte=date_filter_from,
-                order__created_at__lte=date_filter_to
-            )
-        elif date_filter_from:
-            order_items = order_items.filter(order__created_at__gte=date_filter_from)
-        elif date_filter_to:
-            order_items = order_items.filter(order__created_at__lte=date_filter_to)
-        
-        units_sold = order_items.aggregate(total=Sum('quantity'))['total'] or 0
-        revenue = order_items.filter(
-            order__payment_status='paid'
-        ).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
-        
+        sales = paid_items.filter(product__brand=brand).aggregate(
+            units=Sum('quantity'), revenue=Sum('total_price')
+        )
+        units_sold = sales['units'] or 0
+        revenue = sales['revenue'] or Decimal('0.00')
+
         brand_data.append({
             'brand_id': brand.id,
             'brand_name': brand.name,
@@ -1812,11 +1653,17 @@ def category_brand_report(request):
             'revenue': float(revenue)
         })
     
-    data = {
+    return {
         'category_performance': sorted(category_data, key=lambda x: x['revenue'], reverse=True),
         'brand_performance': sorted(brand_data, key=lambda x: x['revenue'], reverse=True)
     }
-    
+
+@api_view(['GET'])
+@permission_classes([IsAdminUser])
+def category_brand_report(request):
+    """Product performance by category and brand"""
+    data = get_category_brand_data(request)
+
     # Log report
     ReportLog.objects.create(
         report_type='analytics',
@@ -1845,26 +1692,20 @@ def export_category_brand_pdf(request):
         spaceAfter=10
     )
     
+    report = get_category_brand_data(request)
+
     # Category Performance
     story.append(Paragraph("Category Performance", section_style))
-    
-    categories = Category.objects.all()
+
     cat_data = [['Category', 'Products', 'Active', 'Units Sold', 'Revenue']]
-    
-    for category in categories[:15]:
-        products = Product.objects.filter(category=category)
-        order_items = OrderItem.objects.filter(product__category=category)
-        units_sold = order_items.aggregate(total=Sum('quantity'))['total'] or 0
-        revenue = order_items.filter(
-            order__payment_status='paid'
-        ).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
-        
+
+    for category in report['category_performance']:
         cat_data.append([
-            category.name[:25],
-            str(products.count()),
-            str(products.filter(is_active=True).count()),
-            str(units_sold),
-            f"Rs {float(revenue):,.0f}"
+            category['category_name'][:25],
+            str(category['total_products']),
+            str(category['active_products']),
+            str(category['units_sold']),
+            f"Rs {category['revenue']:,.0f}"
         ])
     
     cat_table = Table(cat_data, colWidths=[1.8*inch, 0.9*inch, 0.9*inch, 1*inch, 1.2*inch])
@@ -1888,23 +1729,15 @@ def export_category_brand_pdf(request):
     # Brand Performance
     story.append(Paragraph("Brand Performance", section_style))
     
-    brands = Brand.objects.all()
     brand_data = [['Brand', 'Products', 'Active', 'Units Sold', 'Revenue']]
-    
-    for brand in brands[:15]:
-        products = Product.objects.filter(brand=brand)
-        order_items = OrderItem.objects.filter(product__brand=brand)
-        units_sold = order_items.aggregate(total=Sum('quantity'))['total'] or 0
-        revenue = order_items.filter(
-            order__payment_status='paid'
-        ).aggregate(total=Sum('total_price'))['total'] or Decimal('0.00')
-        
+
+    for brand in report['brand_performance']:
         brand_data.append([
-            brand.name[:25],
-            str(products.count()),
-            str(products.filter(is_active=True).count()),
-            str(units_sold),
-            f"Rs {float(revenue):,.0f}"
+            brand['brand_name'][:25],
+            str(brand['total_products']),
+            str(brand['active_products']),
+            str(brand['units_sold']),
+            f"Rs {brand['revenue']:,.0f}"
         ])
     
     brand_table = Table(brand_data, colWidths=[1.8*inch, 0.9*inch, 0.9*inch, 1*inch, 1.2*inch])

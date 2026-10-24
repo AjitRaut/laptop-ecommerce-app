@@ -278,7 +278,7 @@ const VendorReports: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {salesData.map((vendor) => (
-                    <tr key={vendor.vendor_id} className="hover:bg-gray-50">
+                    <tr key={vendor.vendor_id ?? 'in-house'} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                         {vendor.vendor_name}
                       </td>
