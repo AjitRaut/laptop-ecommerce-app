@@ -102,9 +102,9 @@ const VendorManagement: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div>
                         <p className="font-medium text-gray-900">
-                          {vendor.first_name || vendor.last_name 
-                            ? `${vendor.first_name} ${vendor.last_name}`.trim()
-                            : 'N/A'}
+                          {vendor.business_name
+                            || `${vendor.first_name || ''} ${vendor.last_name || ''}`.trim()
+                            || 'N/A'}
                         </p>
                         <p className="text-sm text-gray-500">{vendor.email}</p>
                       </div>

@@ -1,4 +1,4 @@
-from rest_framework import generics, status, permissions
+from rest_framework import generics, status, permissions, serializers
 from rest_framework.response import Response
 from rest_framework.decorators import api_view, permission_classes
 from django.contrib.auth import get_user_model
@@ -10,9 +10,27 @@ from orders.models import Order, OrderItem
 from products.serializers import ProductListSerializer
 from orders.serializers import OrderSerializer
 from users.serializers import UserProfileSerializer
+from vendor_panel.serializers import VendorProfileSerializer
 
 
 User = get_user_model()
+
+class AdminOrderSerializer(OrderSerializer):
+    """Order with the customer's details instead of just their id"""
+    user = serializers.SerializerMethodField()
+
+    def get_user(self, obj):
+        return {
+            'id': obj.user_id,
+            'email': obj.user.email,
+            'name': obj.user.get_full_name() or obj.user.username,
+        }
+
+class AdminVendorSerializer(VendorProfileSerializer):
+    """Vendor fields (business name, approval, commission) - editable by admin"""
+    class Meta(VendorProfileSerializer.Meta):
+        fields = VendorProfileSerializer.Meta.fields + ('is_active',)
+        read_only_fields = ('id', 'email', 'created_at')
 
 class IsAdminUser(permissions.BasePermission):
     def has_permission(self, request, view):
@@ -39,8 +57,8 @@ class AdminDashboardView(generics.GenericAPIView):
         }
         
         # Recent orders
-        recent_orders = Order.objects.all()[:10]
-        recent_orders_data = OrderSerializer(recent_orders, many=True).data
+        recent_orders = Order.objects.select_related('user')[:10]
+        recent_orders_data = AdminOrderSerializer(recent_orders, many=True).data
         
         # Top selling products
         top_products = OrderItem.objects.values('product__name').annotate(
@@ -59,13 +77,13 @@ class AdminProductListView(generics.ListAPIView):
     permission_classes = [IsAdminUser]
 
 class AdminOrderListView(generics.ListAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
+    queryset = Order.objects.select_related('user')
+    serializer_class = AdminOrderSerializer
     permission_classes = [IsAdminUser]
 
 class AdminOrderDetailView(generics.RetrieveUpdateAPIView):
-    queryset = Order.objects.all()
-    serializer_class = OrderSerializer
+    queryset = Order.objects.select_related('user')
+    serializer_class = AdminOrderSerializer
     permission_classes = [IsAdminUser]
     lookup_field = 'order_id'
 
@@ -107,13 +125,13 @@ class AdminAnalyticsView(generics.GenericAPIView):
 class AdminVendorListView(generics.ListAPIView):
     """List all vendors (approved and pending)"""
     queryset = User.objects.filter(user_type='vendor')
-    serializer_class = UserProfileSerializer
+    serializer_class = AdminVendorSerializer
     permission_classes = [IsAdminUser]
 
 class AdminVendorDetailView(generics.RetrieveUpdateAPIView):
     """View and update vendor details"""
     queryset = User.objects.filter(user_type='vendor')
-    serializer_class = UserProfileSerializer
+    serializer_class = AdminVendorSerializer
     permission_classes = [IsAdminUser]
 
 @api_view(['POST'])
@@ -126,7 +144,7 @@ def approve_vendor(request, vendor_id):
         vendor.save()
         return Response({
             'message': 'Vendor approved successfully',
-            'vendor': UserProfileSerializer(vendor).data
+            'vendor': AdminVendorSerializer(vendor).data
         })
     except User.DoesNotExist:
         return Response(
@@ -144,7 +162,7 @@ def reject_vendor(request, vendor_id):
         vendor.save()
         return Response({
             'message': 'Vendor rejected/suspended',
-            'vendor': UserProfileSerializer(vendor).data
+            'vendor': AdminVendorSerializer(vendor).data
         })
     except User.DoesNotExist:
         return Response(
@@ -159,5 +177,5 @@ def pending_vendors(request):
     vendors = User.objects.filter(user_type='vendor', is_vendor_approved=False)
     return Response({
         'count': vendors.count(),
-        'vendors': UserProfileSerializer(vendors, many=True).data
+        'vendors': AdminVendorSerializer(vendors, many=True).data
     })
