@@ -381,10 +381,14 @@ def product_report_summary(request):
     ).order_by('-count')
     
     # Vendor breakdown
-    vendor_stats = products.values('vendor__business_name', 'vendor__id').annotate(
-        count=Count('id'),
-        total_stock=Sum('stock_quantity')
-    ).order_by('-count')
+    vendor_stats = [
+        # Products without a vendor belong to the shop itself
+        {**row, 'vendor__business_name': f'{SHOP_NAME} (in-house)'} if row['vendor__id'] is None else row
+        for row in products.values('vendor__business_name', 'vendor__id').annotate(
+            count=Count('id'),
+            total_stock=Sum('stock_quantity')
+        ).order_by('-count')
+    ]
 
     data = {
         'summary': {

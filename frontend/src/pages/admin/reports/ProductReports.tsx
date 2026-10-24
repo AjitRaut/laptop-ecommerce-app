@@ -25,6 +25,8 @@ import {
   useGetProductStockReportQuery,
   useLazyExportProductReportQuery,
 } from '@/store/api/reportsApi';
+import { useGetCategoriesQuery, useGetBrandsQuery } from '@/store/api/productsApi';
+import { useGetVendorsQuery } from '@/store/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import ReportCard from '@/components/reports/ReportCard';
 import ReportFilters from '@/components/reports/ReportFilters';
@@ -39,6 +41,14 @@ const ProductReports: React.FC = () => {
   const { data: summaryData, isLoading: summaryLoading, isFetching: summaryFetching } = useGetProductReportSummaryQuery(filters);
   const { data: stockData, isLoading: stockLoading, isFetching: stockFetching } = useGetProductStockReportQuery(filters);
   const [exportReport] = useLazyExportProductReportQuery();
+
+  // Options for the category / brand / vendor filter dropdowns
+  const { data: categoriesData } = useGetCategoriesQuery();
+  const { data: brandsData } = useGetBrandsQuery();
+  const { data: vendorsData } = useGetVendorsQuery();
+  const categoryOptions = (categoriesData?.results ?? []).map(c => ({ label: c.name, value: String(c.id) }));
+  const brandOptions = (brandsData?.results ?? []).map(b => ({ label: b.name, value: String(b.id) }));
+  const vendorOptions = (vendorsData?.results ?? []).map(v => ({ label: v.business_name || v.email, value: String(v.id) }));
 
   const handleFilterChange = (key: string, value: string) => {
     setFilters(prev => {
@@ -139,6 +149,9 @@ const ProductReports: React.FC = () => {
         showBrandFilter={true}
         showVendorFilter={true}
         showLowStockFilter={true}
+        categories={categoryOptions}
+        brands={brandOptions}
+        vendors={vendorOptions}
       />
 
       {/* Loading overlay when refetching */}
