@@ -96,13 +96,13 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, inWishlist = false, 
                 <HeartIcon className="h-5 w-5 text-gray-600 hover:text-red-500" />
               )}
             </button>
-            <Link
-              to={`/products/${product.id}`}
+            {/* Not a <Link>: the whole card is already a link to the product (nested links are invalid HTML) */}
+            <span
               className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
               title="Quick View"
             >
               <EyeIcon className="h-5 w-5 text-gray-600 hover:text-blue-500" />
-            </Link>
+            </span>
           </div>
 
           {/* Add to Cart Button - Shows on Hover */}

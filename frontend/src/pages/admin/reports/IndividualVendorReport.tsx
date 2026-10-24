@@ -344,8 +344,9 @@ const IndividualVendorReport: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
-                {data.recent_orders.map((order) => (
-                  <tr key={order.order_id} className="hover:bg-gray-50">
+                {data.recent_orders.map((order, index) => (
+                  // One row per order item, so an order can appear more than once
+                  <tr key={`${order.order_id}-${index}`} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {order.order_id}
                     </td>
