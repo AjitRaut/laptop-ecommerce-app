@@ -44,7 +44,8 @@ import VendorOrders from './pages/vendor/VendorOrders';
 
 import { useAppDispatch, useAppSelector } from './hooks/useTypedSelector';
 import { useGetProfileQuery } from './store/api/authApi';
-import { setCredentials } from './store/slices/authSlice';
+import { setCredentials, logout } from './store/slices/authSlice';
+import LoadingSpinner from './components/common/LoadingSpinner';
 import About from './pages/info/About';
 import Careers from './pages/info/Careers';
 import Help from './pages/info/Help';
@@ -58,10 +59,18 @@ import Returns from './pages/info/Returns';
 import Blog from './pages/info/Blog';
 import Press from './pages/info/Press';
 
+// Shown while a saved token is being turned back into a logged-in user after a page refresh
+const SessionLoading: React.FC = () => (
+  <div className="flex justify-center items-center min-h-screen">
+    <LoadingSpinner size="lg" />
+  </div>
+);
+
 // Role-based Route Protection
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, token } = useAppSelector((state) => state.auth);
 
+  if (token && !isAuthenticated) return <SessionLoading />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!user) return <div>Loading user data...</div>;
   if (user.user_type !== 'admin') return <Navigate to="/" replace />;
@@ -70,8 +79,9 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const VendorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, token } = useAppSelector((state) => state.auth);
 
+  if (token && !isAuthenticated) return <SessionLoading />;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!user) return <div>Loading user data...</div>;
   if (user.user_type !== 'vendor') return <Navigate to="/" replace />;
@@ -80,7 +90,9 @@ const VendorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 };
 
 const CustomerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { user, isAuthenticated } = useAppSelector((state) => state.auth);
+  const { user, isAuthenticated, token } = useAppSelector((state) => state.auth);
+
+  if (token && !isAuthenticated) return <SessionLoading />;
 
   // If user is authenticated and is admin or vendor, redirect them to their respective dashboards
   if (isAuthenticated && user) {
@@ -99,7 +111,7 @@ const App: React.FC = () => {
   const dispatch = useAppDispatch();
   const { token, isAuthenticated, user } = useAppSelector((state) => state.auth);
 
-  const { data: userData } = useGetProfileQuery(undefined, {
+  const { data: userData, isError: profileFailed } = useGetProfileQuery(undefined, {
     skip: !token || isAuthenticated,
   });
 
@@ -107,10 +119,17 @@ const App: React.FC = () => {
     if (token && userData && !isAuthenticated) {
       dispatch(setCredentials({
         user: userData,
-        tokens: { access: token, refresh: '' }
+        tokens: { access: token, refresh: localStorage.getItem('refreshToken') || '' }
       }));
     }
   }, [token, userData, isAuthenticated, dispatch]);
+
+  // Saved token is expired/invalid - clear it so the route guards stop waiting and send the user to login
+  useEffect(() => {
+    if (token && !isAuthenticated && profileFailed) {
+      dispatch(logout());
+    }
+  }, [token, isAuthenticated, profileFailed, dispatch]);
 
   return (
     <ErrorBoundary>
