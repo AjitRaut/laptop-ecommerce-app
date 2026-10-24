@@ -74,20 +74,6 @@ const VendorManagement: React.FC = () => {
         >
           All ({vendors.length || 0})
         </Button>
-        <Button
-          variant={filter === 'approved' ? 'primary' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('approved')}
-        >
-          Approved ({approvedCount})
-        </Button>
-        <Button
-          variant={filter === 'pending' ? 'primary' : 'outline'}
-          size="sm"
-          onClick={() => setFilter('pending')}
-        >
-          Pending ({pendingCount})
-        </Button>
       </div>
 
       {/* Vendors Table */}
@@ -99,7 +85,6 @@ const VendorManagement: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Vendor</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Username</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
@@ -129,11 +114,6 @@ const VendorManagement: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <p className="text-sm text-gray-900">{vendor.phone || 'N/A'}</p>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <Badge variant={vendor.is_vendor_approved ? 'success' : 'warning'}>
-                        {vendor.is_vendor_approved ? 'Approved' : 'Pending'}
-                      </Badge>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {new Date(vendor.created_at).toLocaleDateString()}

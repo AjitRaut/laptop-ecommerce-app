@@ -28,13 +28,15 @@ class User(AbstractUser):
     REQUIRED_FIELDS = ['username']
     
     def save(self, *args, **kwargs):
+        # ✅ FIX: Only SET permissions for admin, never forcefully REMOVE them
+        # This prevents stripping is_staff/is_superuser from superusers
         if self.user_type == 'admin':
             self.is_staff = True
             self.is_superuser = True
-        else:
+        elif not self.is_superuser:
+            # Only restrict if NOT already a superuser (protects Django shell-created admins)
             self.is_staff = False
-            self.is_superuser = False
-        
+
         super().save(*args, **kwargs)
     
     class Meta:

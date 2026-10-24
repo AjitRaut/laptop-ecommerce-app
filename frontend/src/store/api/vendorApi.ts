@@ -30,7 +30,15 @@ export interface VendorOrder {
   customer_name: string;
   customer_email: string;
   total_amount: string;
+  final_amount: string;
   status: string;
+  payment_status: string;
+  shipping_name: string;
+  shipping_phone: string;
+  shipping_address: string;
+  shipping_city: string;
+  shipping_state: string;
+  shipping_pincode: string;
   created_at: string;
   items: any[];
 }
@@ -155,7 +163,7 @@ export const vendorApi = createApi({
     }),
 
     // Orders
-    getVendorOrders: builder.query<VendorOrder[], void>({
+    getVendorOrders: builder.query<PaginatedResponse<VendorOrder>, void>({
       query: () => 'orders/',
       providesTags: ['VendorOrders'],
     }),

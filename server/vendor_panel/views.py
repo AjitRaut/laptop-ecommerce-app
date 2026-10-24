@@ -75,13 +75,15 @@ class VendorDashboardView(generics.GenericAPIView):
             order__payment_status='paid'
         ).aggregate(total=Sum('total_price'))['total'] or 0
         
-        # **Vendor only gets commission (10% of total sales)**
+        # Vendor only gets commission (10% of total sales)
         commission_rate = float(vendor.vendor_commission_rate) if vendor.vendor_commission_rate else 10.0
         vendor_commission = float(total_sales) * (commission_rate / 100)
         admin_revenue = float(total_sales) - vendor_commission
         
-        # Recent orders
-        recent_order_ids = vendor_order_items.values_list('order_id', flat=True).distinct()[:10]
+        # ✅ FIX: wrap with list() to avoid MySQL LIMIT-in-subquery error
+        recent_order_ids = list(
+            vendor_order_items.values_list('order_id', flat=True).distinct()[:10]
+        )
         recent_orders = Order.objects.filter(id__in=recent_order_ids)
         recent_orders_data = VendorOrderSerializer(
             recent_orders, 
@@ -100,10 +102,10 @@ class VendorDashboardView(generics.GenericAPIView):
             'low_stock_products': low_stock_products,
             'total_orders': total_orders,
             'pending_orders': pending_orders,
-            'total_sales': float(total_sales),           # **NEW: Total product sales**
-            'commission_rate': commission_rate,          # **10%**
-            'vendor_commission': vendor_commission,      # **NEW: Vendor's 10% commission**
-            'admin_revenue': admin_revenue,              # **NEW: Admin's 90% share**
+            'total_sales': float(total_sales),
+            'commission_rate': commission_rate,
+            'vendor_commission': vendor_commission,
+            'admin_revenue': admin_revenue,
         }
         
         return Response({
@@ -138,11 +140,12 @@ class VendorOrderListView(generics.ListAPIView):
     permission_classes = [IsVendorUser]
     
     def get_queryset(self):
-        # Get orders that contain this vendor's products
         vendor = self.request.user
-        order_ids = OrderItem.objects.filter(
-            vendor=vendor
-        ).values_list('order_id', flat=True).distinct()
+        # ✅ FIX: wrap with list() to avoid MySQL LIMIT-in-subquery error
+        order_ids = list(
+            OrderItem.objects.filter(vendor=vendor)
+            .values_list('order_id', flat=True).distinct()
+        )
         return Order.objects.filter(id__in=order_ids)
     
     def get_serializer_context(self):
@@ -157,9 +160,11 @@ class VendorOrderDetailView(generics.RetrieveAPIView):
     
     def get_queryset(self):
         vendor = self.request.user
-        order_ids = OrderItem.objects.filter(
-            vendor=vendor
-        ).values_list('order_id', flat=True).distinct()
+        # ✅ FIX: wrap with list() to avoid MySQL LIMIT-in-subquery error
+        order_ids = list(
+            OrderItem.objects.filter(vendor=vendor)
+            .values_list('order_id', flat=True).distinct()
+        )
         return Order.objects.filter(id__in=order_ids)
     
     def get_serializer_context(self):

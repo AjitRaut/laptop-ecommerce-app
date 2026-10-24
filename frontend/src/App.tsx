@@ -40,15 +40,28 @@ import IndividualVendorReport from './pages/admin/reports/IndividualVendorReport
 // Vendor Pages
 import VendorDashboard from './pages/vendor/VendorDashboard';
 import VendorProducts from './pages/vendor/VendorProducts';
+import VendorOrders from './pages/vendor/VendorOrders';
 
 import { useAppDispatch, useAppSelector } from './hooks/useTypedSelector';
 import { useGetProfileQuery } from './store/api/authApi';
 import { setCredentials } from './store/slices/authSlice';
+import About from './pages/info/About';
+import Careers from './pages/info/Careers';
+import Help from './pages/info/Help';
+import Contact from './pages/info/Contact';
+import Shipping from './pages/info/Shipping';
+import Disclaimer from './pages/info/Disclaimer';
+import Cookies from './pages/info/Cookies';
+import Terms from './pages/info/Terms';
+import { Privacy } from './pages/info/Privacy';
+import Returns from './pages/info/Returns';
+import Blog from './pages/info/Blog';
+import Press from './pages/info/Press';
 
 // Role-based Route Protection
 const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  
+
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!user) return <div>Loading user data...</div>;
   if (user.user_type !== 'admin') return <Navigate to="/" replace />;
@@ -58,17 +71,17 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
 
 const VendorRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  
+
   if (!isAuthenticated) return <Navigate to="/login" replace />;
   if (!user) return <div>Loading user data...</div>;
   if (user.user_type !== 'vendor') return <Navigate to="/" replace />;
-  
+
   return <>{children}</>;
 };
 
 const CustomerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated } = useAppSelector((state) => state.auth);
-  
+
   // If user is authenticated and is admin or vendor, redirect them to their respective dashboards
   if (isAuthenticated && user) {
     if (user.user_type === 'admin') {
@@ -78,14 +91,14 @@ const CustomerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =>
       return <Navigate to="/vendor/dashboard" replace />;
     }
   }
-  
+
   return <>{children}</>;
 };
 
 const App: React.FC = () => {
   const dispatch = useAppDispatch();
   const { token, isAuthenticated, user } = useAppSelector((state) => state.auth);
-  
+
   const { data: userData } = useGetProfileQuery(undefined, {
     skip: !token || isAuthenticated,
   });
@@ -107,19 +120,19 @@ const App: React.FC = () => {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/vendor-register" element={<VendorRegister />} />
-          
+
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminRoute><Layout /></AdminRoute>}>
             <Route index element={<Navigate to="/admin/dashboard" replace />} />
-            
+
             {/* Dashboard with nested routes */}
             <Route path="dashboard">
               <Route index element={<AdminDashboard />} />
-              
+
               {/* ========== ALL 8 REPORT ROUTES ========== */}
               {/* Reports Overview - Main Dashboard */}
               <Route path="reports" element={<ReportsOverview />} />
-              
+
               {/* Individual Report Pages */}
               <Route path="reports/products" element={<ProductReports />} />
               <Route path="reports/orders" element={<OrderReports />} />
@@ -128,31 +141,49 @@ const App: React.FC = () => {
               <Route path="reports/sales" element={<SalesReports />} />
               <Route path="reports/customers" element={<CustomerReports />} />
               <Route path="reports/category-brand" element={<CategoryBrandReports />} />
-              
+
               {/* Individual Vendor Report with dynamic ID */}
               <Route path="reports/vendor/:vendorId" element={<IndividualVendorReport />} />
             </Route>
-            
+
             {/* Other admin routes */}
             <Route path="vendors" element={<VendorManagement />} />
             <Route path="products" element={<AdminProducts />} />
             <Route path="users" element={<AdminUsers />} />
             <Route path="orders" element={<AdminOrders />} />
           </Route>
-          
+
           {/* Vendor Routes */}
           <Route path="/vendor" element={<VendorRoute><Layout /></VendorRoute>}>
             <Route index element={<Navigate to="/vendor/dashboard" replace />} />
             <Route path="dashboard" element={<VendorDashboard />} />
             <Route path="products" element={<VendorProducts />} />
+            <Route path="orders" element={<VendorOrders />} />
           </Route>
-          
+
           {/* Customer Routes - Only for customers */}
           <Route path="/" element={<CustomerRoute><Layout /></CustomerRoute>}>
             <Route index element={<Home />} />
             <Route path="products" element={<Products />} />
+
+            {/* Footer Pages */}
+            <Route path="about" element={<About />} />
+            <Route path="careers" element={<Careers />} />
+            <Route path="press" element={<Press/>} />
+            <Route path="blog" element={<Blog/>} />
+
+            <Route path="help" element={<Help />}/>
+            <Route path="contact" element={<Contact />}/>
+            <Route path="shipping" element={<Shipping />} />
+            <Route path="returns" element={<Returns/>} />
+
+            <Route path="privacy" element={<Privacy />} />
+            <Route path="terms" element={<Terms />} />
+            <Route path="cookies" element={<Cookies/>} />
+            <Route path="disclaimer" element={<Disclaimer />} />
+
             <Route path="products/:id" element={<ProductDetail />} />
-            
+
             <Route path="cart" element={<ProtectedRoute><Cart /></ProtectedRoute>} />
             <Route path="checkout" element={<ProtectedRoute><Checkout /></ProtectedRoute>} />
             <Route path="orders" element={<ProtectedRoute><Orders /></ProtectedRoute>} />
@@ -161,10 +192,10 @@ const App: React.FC = () => {
             <Route path="wishlist" element={<ProtectedRoute><Wishlist /></ProtectedRoute>} />
             <Route path="payment/success" element={<ProtectedRoute><PaymentSuccess /></ProtectedRoute>} />
             <Route path="payment/failure" element={<ProtectedRoute><PaymentFailure /></ProtectedRoute>} />
-          </Route> 
+          </Route>
         </Routes>
-        
-        <Toaster 
+
+        <Toaster
           position="top-right"
           toastOptions={{
             duration: 4000,

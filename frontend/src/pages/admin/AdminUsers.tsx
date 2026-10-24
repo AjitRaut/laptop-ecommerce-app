@@ -62,7 +62,7 @@ const AdminUsers: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">User</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Contact</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                {/* <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th> */}
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Joined</th>
               </tr>
             </thead>
@@ -115,7 +115,7 @@ const AdminUsers: React.FC = () => {
                         <span className="text-sm text-gray-400">N/A</span>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    {/* <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-col gap-1">
                         <Badge variant={user.is_active ? 'success' : 'error'}>
                           {user.is_active ? 'Active' : 'Inactive'}
@@ -124,7 +124,7 @@ const AdminUsers: React.FC = () => {
                           <Badge variant="info">Verified</Badge>
                         )}
                       </div>
-                    </td>
+                    </td> */}
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
                       {new Date(user.created_at).toLocaleDateString()}
                     </td>

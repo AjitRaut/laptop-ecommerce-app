@@ -11,13 +11,14 @@ import {
   BuildingStorefrontIcon,
   ChartBarIcon,
 } from '@heroicons/react/24/outline';
-import { useGetAdminDashboardQuery, useGetPendingVendorsQuery } from '@/store/api/adminApi';
+import { useGetAdminDashboardQuery, useGetPendingVendorsQuery, useGetVendorsQuery } from '@/store/api/adminApi';
 import LoadingSpinner from '@/components/common/LoadingSpinner';
 import { formatPrice } from '@/utils/formatters';
 
 const AdminDashboard: React.FC = () => {
   const { data, isLoading } = useGetAdminDashboardQuery();
   const { data: pendingVendorsData } = useGetPendingVendorsQuery();
+  const { data: allVendorsData } = useGetVendorsQuery();  // ✅ all vendors
 
   if (isLoading) {
     return (
@@ -26,6 +27,9 @@ const AdminDashboard: React.FC = () => {
       </div>
     );
   }
+
+  const totalVendors = allVendorsData?.count ?? allVendorsData?.results?.length ?? 0;
+  const pendingCount = pendingVendorsData?.count ?? 0;
 
   const stats = [
     {
@@ -44,11 +48,11 @@ const AdminDashboard: React.FC = () => {
     },
     {
       name: 'Vendors',
-      value: pendingVendorsData?.count || 0,
+      value: totalVendors,           // ✅ total vendors
       icon: BuildingStorefrontIcon,
       color: 'from-indigo-500 to-purple-500',
       link: '/admin/vendors',
-      badge: pendingVendorsData?.count || 0,
+      badge: pendingCount,           // ✅ badge = only pending
     },
     {
       name: 'Total Orders',
@@ -96,7 +100,7 @@ const AdminDashboard: React.FC = () => {
                   <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${stat.color} flex items-center justify-center`}>
                     <stat.icon className="h-6 w-6 text-white" />
                   </div>
-                  {stat.badge && stat.badge > 0 && (
+                  {stat.badge !== undefined && stat.badge > 0 && (
                     <span className="absolute top-4 right-4 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
                       {stat.badge}
                     </span>
@@ -112,15 +116,6 @@ const AdminDashboard: React.FC = () => {
 
       {/* Quick Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-2xl shadow-lg p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600">Orders Today</p>
-              <p className="text-2xl font-bold text-gray-900">{data?.stats.orders_today || 0}</p>
-            </div>
-            <ClockIcon className="h-10 w-10 text-blue-500" />
-          </div>
-        </div>
         <div className="bg-white rounded-2xl shadow-lg p-6">
           <div className="flex items-center justify-between">
             <div>
