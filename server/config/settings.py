@@ -21,7 +21,8 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=DATABASE_URL or "postgresql://laptopshop_db_user:UTAuobfEC9qWPGcCXFx29smHiDEtc4mr@dpg-d46dto6r433s73ckl59g-a.oregon-postgres.render.com/laptopshop_db",
+        # Set DATABASE_URL in server/.env (local) or the host's environment variables - never commit it
+        default=DATABASE_URL,
         conn_max_age=600,
         ssl_require=os.getenv("RENDER", "false").lower() == "true"
     )
