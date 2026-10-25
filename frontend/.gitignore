@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# TypeScript incremental build cache (rewritten by `tsc -b`)
+*.tsbuildinfo
+
 .env
 
 # Editor directories and files
