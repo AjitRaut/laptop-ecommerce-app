@@ -1,16 +1,28 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
-import { UserIcon } from '@heroicons/react/24/outline';
+import { CheckBadgeIcon, ClipboardDocumentListIcon, HeartIcon, ShoppingBagIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
 import { useGetProfileQuery, useUpdateProfileMutation } from '@/store/api/authApi';
 import { useAppDispatch } from '@/hooks/useTypedSelector';
 import { updateUser } from '@/store/slices/authSlice';
 import { INDIAN_STATES } from '@/utils/constants';
 import type { User } from '@/types';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
-import Input from '@/components/common/input';
-import Button from '@/components/common/Button';
+import SEO from '@/components/common/SEO';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import StatusPill from '@/components/storefront/StatusPill';
+import { SfButton } from '@/components/storefront/SfButton';
+import { SelectField, TextAreaField, TextField } from '@/components/storefront/Field';
+import { Skeleton } from '@/components/storefront/Skeleton';
+import { apiErrorMessage, container, initials } from '@/components/storefront/utils';
+
+const quickLinks = [
+  { label: 'My Orders', href: '/orders', icon: ClipboardDocumentListIcon },
+  { label: 'Wishlist', href: '/wishlist', icon: HeartIcon },
+  { label: 'Cart', href: '/cart', icon: ShoppingBagIcon },
+];
 
 const Profile: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -35,165 +47,182 @@ const Profile: React.FC = () => {
       const updatedUser = await updateProfile(data).unwrap();
       dispatch(updateUser(updatedUser));
       toast.success('Profile updated successfully!');
-    } catch (error: any) {
-      toast.error(error?.data?.message || 'Failed to update profile');
+    } catch (error) {
+      toast.error(apiErrorMessage(error, 'Failed to update profile'));
     }
   };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className={clsx(container, 'pt-10')}>
+        <Skeleton className="h-44 w-full rounded-sf-xl" />
+        <Skeleton className="mt-6 h-96 w-full rounded-sf-lg" />
       </div>
     );
   }
 
-  return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">My Profile</h1>
-          <p className="mt-2 text-sm text-gray-600">
-            Manage your account information and preferences
-          </p>
-        </div>
+  const fullName = [user?.first_name, user?.last_name].filter(Boolean).join(' ');
+  const memberSince = user?.created_at
+    ? new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(new Date(user.created_at))
+    : null;
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden"
-        >
-          {/* Profile Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-8">
-            <div className="flex items-center">
-              <div className="h-20 w-20 bg-white/20 rounded-full flex items-center justify-center">
-                <UserIcon className="h-10 w-10 text-white" />
-              </div>
-              <div className="ml-6">
-                <h2 className="text-2xl font-bold text-white">
-                  {user?.first_name} {user?.last_name}
-                </h2>
-                <p className="text-blue-100">{user?.email}</p>
-                <div className="flex items-center mt-2">
-                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                    user?.is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {user?.is_verified ? 'Verified' : 'Unverified'}
-                  </span>
-                </div>
-              </div>
+  return (
+    <div className={clsx(container, 'pt-8 sm:pt-12')}>
+      <SEO title="My Profile" />
+
+      {/* Profile hero */}
+      <motion.section
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        aria-labelledby="profile-heading"
+        className="sf-gradient-border relative isolate overflow-hidden rounded-sf-xl bg-sf-surface/70 p-6 shadow-sf-float sm:p-8"
+      >
+        <div aria-hidden="true" className="absolute -right-16 -top-24 -z-10 h-72 w-72 rounded-full bg-[radial-gradient(closest-side,var(--sf-mesh-b),transparent)]" />
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center">
+          <div className="relative flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-full bg-sf-gradient font-display text-2xl font-semibold text-sf-on-accent shadow-sf-glow ring-4 ring-sf-surface">
+            {initials(fullName || user?.email || 'U')}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-display text-xs font-semibold uppercase tracking-[0.22em] text-sf-accent">My Profile</p>
+            <h1 id="profile-heading" className="mt-1 truncate font-display text-3xl font-semibold tracking-tight text-sf-ink">
+              {fullName || 'Your account'}
+            </h1>
+            <p className="truncate text-sf-muted">{user?.email}</p>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <StatusPill tone={user?.is_verified ? 'success' : 'warning'} dot>
+                {user?.is_verified ? 'Verified' : 'Unverified'}
+              </StatusPill>
+              {memberSince && <span className="text-xs text-sf-subtle">Member since {memberSince}</span>}
             </div>
           </div>
+        </div>
+      </motion.section>
 
-          {/* Profile Form */}
-          <div className="p-6">
-            <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                <Input
-                  label="First Name"
-                  type="text"
-                  error={errors.first_name?.message}
-                  {...register('first_name', {
-                    required: 'First name is required',
-                  })}
-                />
+      <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-12">
+        {/* Form */}
+        <GlassPanel as="section" aria-labelledby="profile-details" className="lg:col-span-8">
+          <h2 id="profile-details" className="font-display text-xl font-semibold text-sf-ink">
+            Account details
+          </h2>
+          <p className="mt-1 text-sm text-sf-muted">Manage your account information and preferences</p>
 
-                <Input
-                  label="Last Name"
-                  type="text"
-                  error={errors.last_name?.message}
-                  {...register('last_name', {
-                    required: 'Last name is required',
-                  })}
-                />
+          <form onSubmit={handleSubmit(onSubmit)} noValidate className="mt-6">
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <TextField
+                label="First Name"
+                type="text"
+                autoComplete="given-name"
+                error={errors.first_name?.message}
+                {...register('first_name', {
+                  required: 'First name is required',
+                })}
+              />
 
-                <div className="sm:col-span-2">
-                  <Input
-                    label="Username"
-                    type="text"
-                    error={errors.username?.message}
-                    {...register('username', {
-                      required: 'Username is required',
-                    })}
-                  />
-                </div>
+              <TextField
+                label="Last Name"
+                type="text"
+                autoComplete="family-name"
+                error={errors.last_name?.message}
+                {...register('last_name', {
+                  required: 'Last name is required',
+                })}
+              />
 
-                <div className="sm:col-span-2">
-                  <Input
-                    label="Phone Number"
-                    type="tel"
-                    error={errors.phone?.message}
-                    {...register('phone', {
-                      pattern: {
-                        value: /^[6-9]\d{9}$/,
-                        message: 'Invalid phone number',
-                      },
-                    })}
-                  />
-                </div>
+              <TextField
+                wrapperClassName="sm:col-span-2"
+                label="Username"
+                type="text"
+                autoComplete="username"
+                error={errors.username?.message}
+                {...register('username', {
+                  required: 'Username is required',
+                })}
+              />
 
-                <div className="sm:col-span-2">
-                  <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1">
-                    Address
-                  </label>
-                  <textarea
-                    id="address"
-                    rows={3}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    {...register('address')}
-                  />
-                </div>
+              <TextField
+                wrapperClassName="sm:col-span-2"
+                label="Phone Number"
+                type="tel"
+                inputMode="numeric"
+                autoComplete="tel"
+                error={errors.phone?.message}
+                {...register('phone', {
+                  pattern: {
+                    value: /^[6-9]\d{9}$/,
+                    message: 'Invalid phone number',
+                  },
+                })}
+              />
 
-                <Input
-                  label="City"
-                  type="text"
-                  error={errors.city?.message}
-                  {...register('city')}
-                />
+              <TextAreaField
+                wrapperClassName="sm:col-span-2"
+                label="Address"
+                rows={3}
+                autoComplete="street-address"
+                {...register('address')}
+              />
 
-                <div>
-                  <label htmlFor="state" className="block text-sm font-medium text-gray-700 mb-1">
-                    State
-                  </label>
-                  <select
-                    id="state"
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    {...register('state')}
+              <TextField label="City" type="text" autoComplete="address-level2" error={errors.city?.message} {...register('city')} />
+
+              <SelectField label="State" autoComplete="address-level1" {...register('state')}>
+                <option value="">Select a state</option>
+                {INDIAN_STATES.map((state) => (
+                  <option key={state} value={state}>
+                    {state}
+                  </option>
+                ))}
+              </SelectField>
+
+              <TextField
+                label="PIN Code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="postal-code"
+                error={errors.pincode?.message}
+                {...register('pincode', {
+                  pattern: {
+                    value: /^[1-9][0-9]{5}$/,
+                    message: 'Invalid PIN code',
+                  },
+                })}
+              />
+            </div>
+
+            <div className="mt-8 flex justify-end">
+              <SfButton type="submit" loading={isUpdating} size="lg">
+                Save Changes
+              </SfButton>
+            </div>
+          </form>
+        </GlassPanel>
+
+        {/* Quick links */}
+        <aside className="space-y-4 lg:col-span-4">
+          <GlassPanel>
+            <h2 className="font-display text-lg font-semibold text-sf-ink">Shortcuts</h2>
+            <ul className="mt-4 space-y-1">
+              {quickLinks.map((link) => (
+                <li key={link.href}>
+                  <Link
+                    to={link.href}
+                    className="group flex items-center gap-3 rounded-sf px-3 py-3 text-sm text-sf-muted transition-colors hover:bg-sf-surface-2 hover:text-sf-ink"
                   >
-                    <option value="">Select a state</option>
-                    {INDIAN_STATES.map((state) => (
-                      <option key={state} value={state}>
-                        {state}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <Input
-                  label="PIN Code"
-                  type="text"
-                  error={errors.pincode?.message}
-                  {...register('pincode', {
-                    pattern: {
-                      value: /^[1-9][0-9]{5}$/,
-                      message: 'Invalid PIN code',
-                    },
-                  })}
-                />
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  type="submit"
-                  loading={isUpdating}
-                  size="lg"
-                >
-                  Save Changes
-                </Button>
-              </div>
-            </form>
-          </div>
-        </motion.div>
+                    <span className="flex h-9 w-9 items-center justify-center rounded-sf-sm bg-sf-surface-2 text-sf-accent ring-1 ring-sf-line">
+                      <link.icon className="h-5 w-5" />
+                    </span>
+                    <span className="flex-1 font-medium">{link.label}</span>
+                    <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </GlassPanel>
+          {user?.is_verified && (
+            <p className="flex items-center gap-2 px-2 text-xs text-sf-subtle">
+              <CheckBadgeIcon className="h-4 w-4 text-sf-success" /> Your email address is verified.
+            </p>
+          )}
+        </aside>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 import { MinusIcon, PlusIcon } from '@heroicons/react/24/outline';
-import Button from './Button';
+import { clsx } from 'clsx';
 
 interface QuantitySelectorProps {
   quantity: number;
@@ -9,6 +9,8 @@ interface QuantitySelectorProps {
   max?: number;
   disabled?: boolean;
   size?: 'sm' | 'md' | 'lg';
+  /** Accessible name, e.g. "Quantity for Dell XPS 13". */
+  label?: string;
 }
 
 const QuantitySelector: React.FC<QuantitySelectorProps> = ({
@@ -18,6 +20,7 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
   max = 10,
   disabled = false,
   size = 'md',
+  label = 'Quantity',
 }) => {
   const handleDecrease = () => {
     if (quantity > min) {
@@ -37,31 +40,42 @@ const QuantitySelector: React.FC<QuantitySelectorProps> = ({
     lg: 'h-12 w-12',
   };
 
+  const stepButton = clsx(
+    sizeClasses[size],
+    'flex items-center justify-center rounded-full text-sf-muted transition-colors hover:bg-sf-surface-2 hover:text-sf-ink disabled:pointer-events-none disabled:opacity-40'
+  );
+
   return (
-    <div className="flex items-center space-x-2">
-      <Button
-        variant="outline"
-        size="sm"
+    <div role="group" aria-label={label} className="sf-glass inline-flex items-center gap-1 rounded-full p-1">
+      <button
+        type="button"
         onClick={handleDecrease}
         disabled={disabled || quantity <= min}
-        className={`${sizeClasses[size]} p-0`}
+        aria-label="Decrease quantity"
+        className={stepButton}
       >
         <MinusIcon className="h-4 w-4" />
-      </Button>
-      
-      <div className={`${sizeClasses[size]} flex items-center justify-center border border-gray-300 rounded-lg bg-white`}>
-        <span className="font-medium text-gray-900">{quantity}</span>
-      </div>
-      
-      <Button
-        variant="outline"
-        size="sm"
+      </button>
+
+      <span
+        aria-live="polite"
+        className={clsx(
+          'min-w-[2.5rem] text-center font-display font-semibold tabular-nums text-sf-ink',
+          size === 'sm' ? 'text-sm' : 'text-base'
+        )}
+      >
+        {quantity}
+      </span>
+
+      <button
+        type="button"
         onClick={handleIncrease}
         disabled={disabled || quantity >= max}
-        className={`${sizeClasses[size]} p-0`}
+        aria-label="Increase quantity"
+        className={stepButton}
       >
         <PlusIcon className="h-4 w-4" />
-      </Button>
+      </button>
     </div>
   );
 };

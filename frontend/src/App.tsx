@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/common/ErrorBoundary';
@@ -8,56 +8,60 @@ import VendorRegister from './components/Auth/VendorRegister';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Home from './pages/Home';
-import Products from './pages/Products';
-import Cart from './pages/Cart';
-import ProductDetail from './pages/ProductDetail';
-import Orders from './pages/Orders';
-import Checkout from './pages/Checkout';
-import OrderDetail from './pages/OrderDetail';
-import Profile from './pages/Profile';
-import Wishlist from './pages/Wishlist';
-import PaymentFailure from './pages/PaymentFailure';
-import PaymentSuccess from './pages/PaymentSuccess';
+
+// Route-level code splitting: every page except Home and the auth screens is
+// fetched on demand, so customers never download the admin/report code
+// (recharts, jsPDF, ...). Loading states live in Layout.
+const Products = lazy(() => import('./pages/Products'));
+const Cart = lazy(() => import('./pages/Cart'));
+const ProductDetail = lazy(() => import('./pages/ProductDetail'));
+const Orders = lazy(() => import('./pages/Orders'));
+const Checkout = lazy(() => import('./pages/Checkout'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const Profile = lazy(() => import('./pages/Profile'));
+const Wishlist = lazy(() => import('./pages/Wishlist'));
+const PaymentFailure = lazy(() => import('./pages/PaymentFailure'));
+const PaymentSuccess = lazy(() => import('./pages/PaymentSuccess'));
 
 // Admin Pages
-import AdminDashboard from './pages/admin/VendorDetail';
-import VendorManagement from './pages/admin/VendorManagement';
-import AdminProducts from './pages/admin/AdminProducts';
-import AdminUsers from './pages/admin/AdminUsers';
-import AdminOrders from './pages/admin/AdminOrders';
+const AdminDashboard = lazy(() => import('./pages/admin/VendorDetail'));
+const VendorManagement = lazy(() => import('./pages/admin/VendorManagement'));
+const AdminProducts = lazy(() => import('./pages/admin/AdminProducts'));
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'));
+const AdminOrders = lazy(() => import('./pages/admin/AdminOrders'));
 
 // Report Pages - ALL 8 REPORTS
-import ReportsOverview from './pages/admin/reports/ReportsOverview';
-import ProductReports from './pages/admin/reports/ProductReports';
-import OrderReports from './pages/admin/reports/OrderReports';
-import VendorReports from './pages/admin/reports/VendorReports';
-import UserReports from './pages/admin/reports/UserReports';
-import SalesReports from './pages/admin/reports/SalesReports';
-import CustomerReports from './pages/admin/reports/CustomerReports';
-import CategoryBrandReports from './pages/admin/reports/CategoryBrandReports';
-import IndividualVendorReport from './pages/admin/reports/IndividualVendorReport';
+const ReportsOverview = lazy(() => import('./pages/admin/reports/ReportsOverview'));
+const ProductReports = lazy(() => import('./pages/admin/reports/ProductReports'));
+const OrderReports = lazy(() => import('./pages/admin/reports/OrderReports'));
+const VendorReports = lazy(() => import('./pages/admin/reports/VendorReports'));
+const UserReports = lazy(() => import('./pages/admin/reports/UserReports'));
+const SalesReports = lazy(() => import('./pages/admin/reports/SalesReports'));
+const CustomerReports = lazy(() => import('./pages/admin/reports/CustomerReports'));
+const CategoryBrandReports = lazy(() => import('./pages/admin/reports/CategoryBrandReports'));
+const IndividualVendorReport = lazy(() => import('./pages/admin/reports/IndividualVendorReport'));
 
 // Vendor Pages
-import VendorDashboard from './pages/vendor/VendorDashboard';
-import VendorProducts from './pages/vendor/VendorProducts';
-import VendorOrders from './pages/vendor/VendorOrders';
+const VendorDashboard = lazy(() => import('./pages/vendor/VendorDashboard'));
+const VendorProducts = lazy(() => import('./pages/vendor/VendorProducts'));
+const VendorOrders = lazy(() => import('./pages/vendor/VendorOrders'));
 
 import { useAppDispatch, useAppSelector } from './hooks/useTypedSelector';
 import { useGetProfileQuery } from './store/api/authApi';
 import { setCredentials, logout } from './store/slices/authSlice';
 import LoadingSpinner from './components/common/LoadingSpinner';
-import About from './pages/info/About';
-import Careers from './pages/info/Careers';
-import Help from './pages/info/Help';
-import Contact from './pages/info/Contact';
-import Shipping from './pages/info/Shipping';
-import Disclaimer from './pages/info/Disclaimer';
-import Cookies from './pages/info/Cookies';
-import Terms from './pages/info/Terms';
-import { Privacy } from './pages/info/Privacy';
-import Returns from './pages/info/Returns';
-import Blog from './pages/info/Blog';
-import Press from './pages/info/Press';
+const About = lazy(() => import('./pages/info/About'));
+const Careers = lazy(() => import('./pages/info/Careers'));
+const Help = lazy(() => import('./pages/info/Help'));
+const Contact = lazy(() => import('./pages/info/Contact'));
+const Shipping = lazy(() => import('./pages/info/Shipping'));
+const Disclaimer = lazy(() => import('./pages/info/Disclaimer'));
+const Cookies = lazy(() => import('./pages/info/Cookies'));
+const Terms = lazy(() => import('./pages/info/Terms'));
+const Privacy = lazy(() => import('./pages/info/Privacy').then((module) => ({ default: module.Privacy })));
+const Returns = lazy(() => import('./pages/info/Returns'));
+const Blog = lazy(() => import('./pages/info/Blog'));
+const Press = lazy(() => import('./pages/info/Press'));
 
 // Shown while a saved token is being turned back into a logged-in user after a page refresh
 const SessionLoading: React.FC = () => (
@@ -134,6 +138,8 @@ const App: React.FC = () => {
   return (
     <ErrorBoundary>
       <div className="min-h-screen bg-gray-50">
+        {/* Safety net only: Layout renders its own fallbacks around lazy pages. */}
+        <Suspense fallback={<SessionLoading />}>
         <Routes>
           {/* Public Routes */}
           <Route path="/login" element={<Login />} />
@@ -213,6 +219,7 @@ const App: React.FC = () => {
             <Route path="payment/failure" element={<ProtectedRoute><PaymentFailure /></ProtectedRoute>} />
           </Route>
         </Routes>
+        </Suspense>
 
         <Toaster
           position="top-right"

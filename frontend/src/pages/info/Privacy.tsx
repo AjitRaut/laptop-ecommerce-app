@@ -1,5 +1,6 @@
 import React from 'react';
 import SEO from '@/components/common/SEO';
+import { LegalPage } from '@/components/storefront/InfoPage';
 
 const sections = [
   {
@@ -32,45 +33,22 @@ const sections = [
   },
 ];
 
-const LegalLayout: React.FC<{ title: string; subtitle: string; updated: string; children: React.ReactNode }> = ({
-  title, subtitle, updated, children,
-}) => (
-  <>
-    <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-      <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8 text-center">
-        <h1 className="text-4xl font-bold sm:text-5xl mb-4">{title}</h1>
-        <p className="mt-4 text-lg text-blue-100 max-w-2xl mx-auto">{subtitle}</p>
-        <p className="mt-3 text-sm text-blue-200">Last updated: {updated}</p>
-      </div>
-    </section>
-    <section className="bg-gray-50 py-16">
-      <div className="mx-auto max-w-3xl px-6 lg:px-8">
-        <div className="card p-8 space-y-8">{children}</div>
-      </div>
-    </section>
-  </>
-);
-
 export const Privacy: React.FC = () => (
   <>
     <SEO title="Privacy Policy" description="LaptopWorld's privacy policy — how we collect, use, and protect your data." keywords="LaptopWorld privacy policy" />
-    <LegalLayout
+    <LegalPage
       title="Privacy Policy"
       subtitle="We take your privacy seriously. Here's exactly what data we collect and how we use it."
       updated="January 1, 2025"
-    >
-      {sections.map((s) => (
-        <div key={s.title}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">{s.title}</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">{s.content}</p>
-        </div>
-      ))}
-      <div className="border-t border-gray-100 pt-6 text-sm text-gray-500">
-        Questions? Contact us at{' '}
-        <a href="mailto:sagarcomputersatara@gmail.com" className="text-blue-600 hover:underline">
-          sagarcomputersatara@gmail.com
-        </a>
-      </div>
-    </LegalLayout>
+      sections={sections}
+      footer={
+        <>
+          Questions? Contact us at{' '}
+          <a href="mailto:sagarcomputersatara@gmail.com" className="font-medium text-sf-accent hover:underline">
+            sagarcomputersatara@gmail.com
+          </a>
+        </>
+      }
+    />
   </>
 );

@@ -1,6 +1,5 @@
 import React from 'react';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
-import Button from './Button';
 import { clsx } from 'clsx';
 
 interface PaginationProps {
@@ -12,6 +11,9 @@ interface PaginationProps {
   itemsPerPage?: number;
   className?: string;
 }
+
+const pageButton =
+  'inline-flex h-10 min-w-[2.5rem] items-center justify-center rounded-full px-3 text-sm font-medium tabular-nums transition-colors disabled:pointer-events-none disabled:opacity-40';
 
 const Pagination: React.FC<PaginationProps> = ({
   currentPage,
@@ -29,9 +31,7 @@ const Pagination: React.FC<PaginationProps> = ({
     const delta = 2;
     const range: (number | string)[] = [];
 
-    for (let i = Math.max(2, currentPage - delta); 
-         i <= Math.min(totalPages - 1, currentPage + delta); 
-         i++) {
+    for (let i = Math.max(2, currentPage - delta); i <= Math.min(totalPages - 1, currentPage + delta); i++) {
       range.push(i);
     }
 
@@ -55,75 +55,60 @@ const Pagination: React.FC<PaginationProps> = ({
   if (totalPages <= 1) return null;
 
   return (
-    <div className={clsx('flex items-center justify-between border-t border-gray-200 bg-white px-4 py-3 sm:px-6', className)}>
+    <div className={clsx('flex flex-col items-center gap-4 sm:flex-row sm:justify-between', className)}>
       {showInfo && (
-        <div className="flex flex-1 justify-between sm:hidden">
-          <p className="text-sm text-gray-700">
-            Showing <span className="font-medium">{startItem}</span> to{' '}
-            <span className="font-medium">{endItem}</span> of{' '}
-            <span className="font-medium">{totalItems}</span> results
-          </p>
-        </div>
+        <p className="text-sm text-sf-muted">
+          Showing <span className="font-medium text-sf-ink">{startItem}</span> to{' '}
+          <span className="font-medium text-sf-ink">{endItem}</span> of{' '}
+          <span className="font-medium text-sf-ink">{totalItems}</span> results
+        </p>
       )}
-      
-      <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
-        {showInfo && (
-          <div>
-            <p className="text-sm text-gray-700">
-              Showing <span className="font-medium">{startItem}</span> to{' '}
-              <span className="font-medium">{endItem}</span> of{' '}
-              <span className="font-medium">{totalItems}</span> results
-            </p>
-          </div>
+
+      <nav aria-label="Pagination" className="sf-glass inline-flex items-center gap-1 rounded-full p-1">
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          aria-label="Previous page"
+          className={clsx(pageButton, 'text-sf-muted hover:bg-sf-surface-2 hover:text-sf-ink')}
+        >
+          <ChevronLeftIcon className="h-4 w-4" />
+        </button>
+
+        {getVisiblePages().map((page, index) =>
+          page === '...' ? (
+            <span key={`gap-${index}`} aria-hidden="true" className="px-1 text-sm text-sf-subtle">
+              …
+            </span>
+          ) : (
+            <button
+              key={page}
+              type="button"
+              onClick={() => onPageChange(page as number)}
+              aria-current={currentPage === page ? 'page' : undefined}
+              aria-label={`Page ${page}`}
+              className={clsx(
+                pageButton,
+                currentPage === page
+                  ? 'bg-sf-gradient text-sf-on-accent shadow-sf-glow'
+                  : 'text-sf-muted hover:bg-sf-surface-2 hover:text-sf-ink'
+              )}
+            >
+              {page}
+            </button>
+          )
         )}
-        
-        <div>
-          <nav className="isolate inline-flex -space-x-px rounded-md shadow-sm" aria-label="Pagination">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage - 1)}
-              disabled={currentPage === 1}
-              className="rounded-r-none"
-              leftIcon={<ChevronLeftIcon className="h-4 w-4" />}
-            >
-              Previous
-            </Button>
-            
-            {getVisiblePages().map((page, index) => (
-              page === '...' ? (
-                <span
-                  key={index}
-                  className="relative inline-flex items-center px-4 py-2 text-sm font-semibold text-gray-700 ring-1 ring-inset ring-gray-300 focus:outline-offset-0"
-                >
-                  ...
-                </span>
-              ) : (
-                <Button
-                  key={page}
-                  variant={currentPage === page ? 'primary' : 'outline'}
-                  size="sm"
-                  onClick={() => onPageChange(page as number)}
-                  className="rounded-none border-l-0"
-                >
-                  {page}
-                </Button>
-              )
-            ))}
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onPageChange(currentPage + 1)}
-              disabled={currentPage === totalPages}
-              className="rounded-l-none border-l-0"
-              rightIcon={<ChevronRightIcon className="h-4 w-4" />}
-            >
-              Next
-            </Button>
-          </nav>
-        </div>
-      </div>
+
+        <button
+          type="button"
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          aria-label="Next page"
+          className={clsx(pageButton, 'text-sf-muted hover:bg-sf-surface-2 hover:text-sf-ink')}
+        >
+          <ChevronRightIcon className="h-4 w-4" />
+        </button>
+      </nav>
     </div>
   );
 };

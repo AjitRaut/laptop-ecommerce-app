@@ -3,9 +3,12 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { EyeIcon, EyeSlashIcon } from '@heroicons/react/24/outline';
-import Button from '../common/Button';
-import Input from '../common/input';
 import BASE_URL from '@/config/apiConfig';
+import SEO from '../common/SEO';
+import AuthShell from '../storefront/AuthShell';
+import { TextField } from '../storefront/Field';
+import { SfButton } from '../storefront/SfButton';
+import { apiErrorMessage } from '../storefront/utils';
 
 interface VendorRegisterData {
   email: string;
@@ -23,6 +26,13 @@ interface VendorRegisterData {
   pincode?: string;
 }
 
+const FormSection: React.FC<{ legend: string; children: React.ReactNode }> = ({ legend, children }) => (
+  <fieldset className="border-t border-sf-line pt-6 first:border-t-0 first:pt-0">
+    <legend className="float-left mb-4 w-full font-display text-lg font-semibold text-sf-ink">{legend}</legend>
+    <div className="clear-left grid grid-cols-1 gap-5 md:grid-cols-2">{children}</div>
+  </fieldset>
+);
+
 const VendorRegister: React.FC = () => {
   const [showPassword, setShowPassword] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
@@ -38,14 +48,14 @@ const VendorRegister: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      
-      const result = await response.json();
-      
+
+      const result: unknown = await response.json();
+
       if (response.ok) {
         toast.success('Registration successful! Awaiting admin approval.');
         navigate('/login');
       } else {
-        toast.error(result.message || 'Registration failed');
+        toast.error(apiErrorMessage({ data: result }, 'Registration failed'));
       }
     } catch (error) {
       toast.error('Registration failed');
@@ -55,130 +65,117 @@ const VendorRegister: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-2xl w-full">
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <div className="text-center mb-8">
-            <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg p-3 inline-block mb-4">
-              <svg className="h-8 w-8" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-              </svg>
-            </div>
-            <h2 className="text-3xl font-bold text-gray-900 mb-2">Become a Vendor</h2>
-            <p className="text-gray-600">Join our marketplace and start selling</p>
-          </div>
+    <AuthShell
+      wide
+      title="Become a Vendor"
+      subtitle="Join our marketplace and start selling"
+      footer={
+        <p>
+          Already have an account?{' '}
+          <Link to="/login" className="font-medium text-sf-accent hover:underline">
+            Sign in
+          </Link>
+        </p>
+      }
+    >
+      <SEO title="Become a Vendor" description="Register as a LaptopWorld vendor and sell laptops and accessories across India." />
 
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            {/* Account Information */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Account Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Email"
-                  type="email"
-                  error={errors.email?.message}
-                  {...register('email', { required: 'Email is required' })}
-                />
-                <Input
-                  label="Username"
-                  error={errors.username?.message}
-                  {...register('username', { required: 'Username is required' })}
-                />
-                <Input
-                  label="Password"
-                  type={showPassword ? 'text' : 'password'}
-                  error={errors.password?.message}
-                  {...register('password', { 
-                    required: 'Password is required',
-                    minLength: { value: 6, message: 'Min 6 characters' }
-                  })}
-                  rightIcon={
-                    <button type="button" onClick={() => setShowPassword(!showPassword)}>
-                      {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
-                    </button>
-                  }
-                />
-                <Input
-                  label="Confirm Password"
-                  type={showPassword ? 'text' : 'password'}
-                  error={errors.password_confirm?.message}
-                  {...register('password_confirm', {
-                    required: 'Please confirm password',
-                    validate: (val: string) => {
-                      if (watch('password') != val) return 'Passwords do not match';
-                    },
-                  })}
-                />
-              </div>
-            </div>
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+        <FormSection legend="Account Information">
+          <TextField
+            label="Email"
+            type="email"
+            autoComplete="email"
+            error={errors.email?.message}
+            {...register('email', { required: 'Email is required' })}
+          />
+          <TextField
+            label="Username"
+            autoComplete="username"
+            error={errors.username?.message}
+            {...register('username', { required: 'Username is required' })}
+          />
+          <TextField
+            label="Password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            error={errors.password?.message}
+            {...register('password', {
+              required: 'Password is required',
+              minLength: { value: 6, message: 'Min 6 characters' },
+            })}
+            rightSlot={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                aria-pressed={showPassword}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-sf-subtle transition-colors hover:bg-sf-surface-2 hover:text-sf-ink"
+              >
+                {showPassword ? <EyeSlashIcon className="h-5 w-5" /> : <EyeIcon className="h-5 w-5" />}
+              </button>
+            }
+          />
+          <TextField
+            label="Confirm Password"
+            type={showPassword ? 'text' : 'password'}
+            autoComplete="new-password"
+            error={errors.password_confirm?.message}
+            {...register('password_confirm', {
+              required: 'Please confirm password',
+              validate: (val: string) => watch('password') === val || 'Passwords do not match',
+            })}
+          />
+        </FormSection>
 
-            {/* Personal Information */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Personal Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="First Name"
-                  error={errors.first_name?.message}
-                  {...register('first_name', { required: 'First name is required' })}
-                />
-                <Input
-                  label="Last Name"
-                  error={errors.last_name?.message}
-                  {...register('last_name', { required: 'Last name is required' })}
-                />
-                <Input
-                  label="Phone"
-                  type="tel"
-                  error={errors.phone?.message}
-                  {...register('phone', { required: 'Phone is required' })}
-                />
-              </div>
-            </div>
+        <FormSection legend="Personal Information">
+          <TextField
+            label="First Name"
+            autoComplete="given-name"
+            error={errors.first_name?.message}
+            {...register('first_name', { required: 'First name is required' })}
+          />
+          <TextField
+            label="Last Name"
+            autoComplete="family-name"
+            error={errors.last_name?.message}
+            {...register('last_name', { required: 'Last name is required' })}
+          />
+          <TextField
+            label="Phone"
+            type="tel"
+            autoComplete="tel"
+            error={errors.phone?.message}
+            {...register('phone', { required: 'Phone is required' })}
+          />
+        </FormSection>
 
-            {/* Business Information */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Business Information</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input
-                  label="Business Name"
-                  error={errors.business_name?.message}
-                  {...register('business_name', { required: 'Business name is required' })}
-                />
-                <Input
-                  label="GST Number"
-                  error={errors.gst_number?.message}
-                  {...register('gst_number', { required: 'GST number is required' })}
-                />
-              </div>
-            </div>
+        <FormSection legend="Business Information">
+          <TextField
+            label="Business Name"
+            autoComplete="organization"
+            error={errors.business_name?.message}
+            {...register('business_name', { required: 'Business name is required' })}
+          />
+          <TextField
+            label="GST Number"
+            error={errors.gst_number?.message}
+            {...register('gst_number', { required: 'GST number is required' })}
+          />
+        </FormSection>
 
-            {/* Address (Optional) */}
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Address (Optional)</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Address" {...register('address')} className="md:col-span-2" />
-                <Input label="City" {...register('city')} />
-                <Input label="State" {...register('state')} />
-                <Input label="Pincode" {...register('pincode')} />
-              </div>
-            </div>
+        <FormSection legend="Address (Optional)">
+          <TextField label="Address" autoComplete="street-address" wrapperClassName="md:col-span-2" {...register('address')} />
+          <TextField label="City" autoComplete="address-level2" {...register('city')} />
+          <TextField label="State" autoComplete="address-level1" {...register('state')} />
+          <TextField label="Pincode" autoComplete="postal-code" {...register('pincode')} />
+        </FormSection>
 
-            <Button type="submit" loading={isLoading} fullWidth size="lg" className="shadow-lg">
-              Register as Vendor
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-gray-600">
-              Already have an account?{' '}
-              <Link to="/login" className="font-medium text-blue-600 hover:text-blue-500">
-                Sign in
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
+        <SfButton type="submit" loading={isLoading} fullWidth size="lg">
+          Register as Vendor
+        </SfButton>
+      </form>
+    </AuthShell>
   );
 };
 

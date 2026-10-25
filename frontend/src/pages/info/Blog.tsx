@@ -1,6 +1,23 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import {
+  ShoppingBagIcon,
+  LightBulbIcon,
+  NewspaperIcon,
+  StarIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+  InboxIcon,
+  ArrowRightIcon,
+} from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
 import SEO from '@/components/common/SEO';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import StatusPill from '@/components/storefront/StatusPill';
+import { TextField } from '@/components/storefront/Field';
+import { RevealGroup, RevealItem, Reveal } from '@/components/storefront/Reveal';
+import { SfButton } from '@/components/storefront/SfButton';
+import { Accent, InfoCta, InfoHero, InfoSection } from '@/components/storefront/InfoPage';
+import { container, tintFor, type Tint } from '@/components/storefront/utils';
 
 const categories = ['All', 'Buying Guides', 'Tips & Tricks', 'News', 'Reviews'];
 
@@ -73,14 +90,80 @@ const posts = [
   },
 ];
 
+type Post = (typeof posts)[number];
+
+const categoryIcons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  'Buying Guides': ShoppingBagIcon,
+  'Tips & Tricks': LightBulbIcon,
+  News: NewspaperIcon,
+  Reviews: StarIcon,
+};
+
+const coverTints: Record<Tint, string> = {
+  accent: 'from-sf-accent-strong/80 via-sf-violet-strong/60 to-sf-cyan/40',
+  violet: 'from-sf-violet-strong/80 via-sf-accent-strong/50 to-sf-violet/30',
+  cyan: 'from-sf-cyan/70 via-sf-accent-strong/60 to-sf-violet-strong/50',
+};
+
+/** Gradient "cover art" tile with the category icon (posts have no images). */
+const PostCover: React.FC<{ post: Post; index: number; large?: boolean }> = ({ post, index, large = false }) => {
+  const Icon = categoryIcons[post.category] ?? NewspaperIcon;
+  return (
+    <div
+      aria-hidden="true"
+      className={clsx(
+        'relative flex items-center justify-center overflow-hidden rounded-sf bg-gradient-to-br',
+        coverTints[tintFor(index)],
+        large ? 'aspect-[4/3] w-full lg:aspect-square lg:w-72 lg:flex-shrink-0' : 'aspect-[16/9] w-full'
+      )}
+    >
+      <div className="sf-grid-bg absolute inset-0 opacity-70" />
+      <div className="absolute -right-8 -top-10 h-32 w-32 rounded-full bg-sf-on-accent/20 blur-2xl" />
+      <span className={clsx('relative flex items-center justify-center rounded-sf-lg bg-sf-on-accent/15 text-sf-on-accent ring-1 ring-sf-on-accent/30 backdrop-blur', large ? 'h-24 w-24' : 'h-14 w-14')}>
+        <Icon className={large ? 'h-12 w-12' : 'h-7 w-7'} />
+      </span>
+    </div>
+  );
+};
+
+const PostMeta: React.FC<{ post: Post }> = ({ post }) => (
+  <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-sf-subtle">
+    <span className="inline-flex items-center gap-1">
+      <CalendarDaysIcon aria-hidden="true" className="h-4 w-4" />
+      {post.date}
+    </span>
+    <span className="inline-flex items-center gap-1">
+      <ClockIcon aria-hidden="true" className="h-4 w-4" />
+      {post.readTime}
+    </span>
+  </span>
+);
+
+const CONTACT_EMAIL = 'sagarcomputersatara@gmail.com';
+
 const Blog: React.FC = () => {
   const [activeCategory, setActiveCategory] = useState('All');
+  const [email, setEmail] = useState('');
+  const [emailError, setEmailError] = useState('');
 
   const filtered = activeCategory === 'All'
     ? posts
     : posts.filter((p) => p.category === activeCategory);
 
   const [featured, ...rest] = filtered;
+
+  // No newsletter endpoint exists: open a prefilled email (same approach as the footer).
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setEmailError('Please enter a valid email address.');
+      return;
+    }
+    setEmailError('');
+    window.location.href = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent('Blog newsletter subscription')}&body=${encodeURIComponent(
+      `Please subscribe ${email} to the LaptopWorld blog.`
+    )}`;
+  };
 
   return (
     <>
@@ -90,127 +173,132 @@ const Blog: React.FC = () => {
         keywords="laptop buying guide, laptop tips India, best laptops 2025, LaptopWorld blog"
       />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold sm:text-5xl mb-4">
-            The LaptopWorld{' '}
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-              Blog
-            </span>
-          </h1>
-          <p className="mt-4 text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-            Buying guides, tips, reviews, and news to help you get the most out of your laptop.
-          </p>
-        </div>
-      </section>
+      <InfoHero
+        eyebrow="Blog"
+        title={
+          <>
+            The LaptopWorld <Accent>Blog</Accent>
+          </>
+        }
+        subtitle="Buying guides, tips, reviews, and news to help you get the most out of your laptop."
+      />
 
       {/* Category Filter */}
-      <section className="bg-white border-b border-gray-200 sticky top-16 z-30">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="flex gap-2 overflow-x-auto py-4 scrollbar-hide">
+      <div className="sticky top-[62px] z-30">
+        <div className={container}>
+          <div
+            role="group"
+            aria-label="Filter posts by category"
+            className="sf-glass flex gap-2 overflow-x-auto rounded-full p-1.5 shadow-sf-card [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          >
             {categories.map((cat) => (
               <button
                 key={cat}
+                type="button"
+                aria-pressed={activeCategory === cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+                className={clsx(
+                  'whitespace-nowrap rounded-full px-4 py-2 text-sm font-medium transition-colors',
                   activeCategory === cat
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                    ? 'bg-sf-gradient text-sf-on-accent shadow-sf-glow'
+                    : 'text-sf-muted hover:bg-sf-surface-2 hover:text-sf-ink'
+                )}
               >
                 {cat}
               </button>
             ))}
           </div>
         </div>
-      </section>
+      </div>
 
-      <section className="bg-gray-50 py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+      <InfoSection className="pt-10 sm:pt-12" labelledBy="blog-posts">
+        <h2 id="blog-posts" className="sr-only">
+          {activeCategory === 'All' ? 'All posts' : `${activeCategory} posts`}
+        </h2>
 
-          {/* Featured Post */}
-          {featured && (
-            <div className="card p-8 mb-10 lg:flex lg:gap-10 lg:items-center">
-              <div className="text-7xl mb-6 lg:mb-0 lg:flex-shrink-0 text-center lg:text-left">
-                {featured.emoji}
-              </div>
+        {/* Featured Post */}
+        {featured && (
+          <Reveal key={`featured-${featured.slug}`}>
+            <GlassPanel as="article" glow className="mb-10 flex flex-col gap-8 p-5 sm:p-8 lg:flex-row lg:items-center">
+              <PostCover post={featured} index={0} large />
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                    {featured.category}
-                  </span>
-                  <span className="text-xs text-gray-400">Featured</span>
+                <div className="mb-4 flex flex-wrap items-center gap-2">
+                  <StatusPill tone="accent">{featured.category}</StatusPill>
+                  <StatusPill tone="violet" dot>
+                    Featured
+                  </StatusPill>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-3 leading-snug">
+                <h3 className="font-display text-2xl font-semibold leading-snug tracking-tight text-sf-ink sm:text-3xl">
                   {featured.title}
-                </h2>
-                <p className="text-gray-500 text-sm leading-relaxed mb-4">{featured.excerpt}</p>
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-gray-400">
-                    {featured.date} · {featured.readTime}
-                  </div>
-                  <span className="text-sm font-medium text-blue-600 hover:underline cursor-pointer">
-                    Read more →
+                </h3>
+                <p className="mt-3 text-base leading-relaxed text-sf-muted">{featured.excerpt}</p>
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+                  <PostMeta post={featured} />
+                  <span className="inline-flex items-center gap-1 text-sm font-medium text-sf-accent">
+                    Read more <ArrowRightIcon aria-hidden="true" className="h-4 w-4" />
                   </span>
                 </div>
               </div>
-            </div>
-          )}
+            </GlassPanel>
+          </Reveal>
+        )}
 
-          {/* Rest of posts */}
-          {rest.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {rest.map((post) => (
-                <div key={post.slug} className="card p-6 flex flex-col">
-                  <div className="text-4xl mb-4">{post.emoji}</div>
-                  <span className="text-xs font-semibold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full self-start mb-3">
-                    {post.category}
-                  </span>
-                  <h3 className="font-semibold text-gray-900 mb-2 leading-snug flex-1">
-                    {post.title}
-                  </h3>
-                  <p className="text-sm text-gray-500 leading-relaxed mb-4">{post.excerpt}</p>
-                  <div className="flex items-center justify-between mt-auto pt-4 border-t border-gray-100">
-                    <span className="text-xs text-gray-400">{post.date} · {post.readTime}</span>
-                    <span className="text-sm font-medium text-blue-600 hover:underline cursor-pointer">
-                      Read →
-                    </span>
+        {/* Rest of posts */}
+        {rest.length > 0 && (
+          <RevealGroup key={activeCategory} className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {rest.map((post, index) => (
+              <RevealItem key={post.slug} className="h-full">
+                <GlassPanel as="article" padded={false} className="flex h-full flex-col p-4 transition-colors hover:border-sf-accent/40">
+                  <PostCover post={post} index={index + 1} />
+                  <div className="flex flex-1 flex-col px-1 pt-5">
+                    <StatusPill tone="neutral" className="self-start">
+                      {post.category}
+                    </StatusPill>
+                    <h3 className="mt-3 flex-1 font-display text-lg font-semibold leading-snug text-sf-ink">{post.title}</h3>
+                    <p className="mt-2 text-sm leading-relaxed text-sf-muted">{post.excerpt}</p>
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-sf-line pt-4">
+                      <PostMeta post={post} />
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-sf-accent">
+                        Read <ArrowRightIcon aria-hidden="true" className="h-4 w-4" />
+                      </span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                </GlassPanel>
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        )}
 
-          {filtered.length === 0 && (
-            <div className="text-center py-20 text-gray-400">
-              <div className="text-5xl mb-4">📭</div>
-              <p className="text-lg font-medium">No posts in this category yet.</p>
-              <p className="text-sm mt-1">Check back soon!</p>
-            </div>
-          )}
-        </div>
-      </section>
+        {filtered.length === 0 && (
+          <div className="py-20 text-center">
+            <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-sf-lg bg-sf-surface-2 text-sf-subtle ring-1 ring-sf-line">
+              <InboxIcon aria-hidden="true" className="h-8 w-8" />
+            </span>
+            <p className="mt-5 font-display text-lg font-semibold text-sf-ink">No posts in this category yet.</p>
+            <p className="mt-1 text-sm text-sf-muted">Check back soon!</p>
+          </div>
+        )}
+      </InfoSection>
 
       {/* Newsletter */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-14">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">Stay in the Loop</h2>
-          <p className="text-blue-100 mb-6 max-w-md mx-auto">
-            Get our latest guides and deals delivered straight to your inbox. No spam, ever.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="Enter your email"
-              className="flex-1 px-4 py-2.5 rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-white"
-            />
-            <button className="px-6 py-2.5 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors">
-              Subscribe
-            </button>
-          </div>
-        </div>
-      </section>
+      <InfoCta title="Stay in the Loop">
+        <p>Get our latest guides and deals delivered straight to your inbox. No spam, ever.</p>
+        <form onSubmit={handleSubscribe} noValidate className="mx-auto mt-6 flex max-w-md flex-col gap-3 text-left sm:flex-row sm:items-start">
+          <TextField
+            id="blog-newsletter"
+            type="email"
+            aria-label="Email address"
+            placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            error={emailError}
+            wrapperClassName="flex-1"
+          />
+          <SfButton type="submit" size="lg" className="flex-shrink-0">
+            Subscribe
+          </SfButton>
+        </form>
+      </InfoCta>
     </>
   );
 };

@@ -1,57 +1,104 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { CheckCircleIcon } from '@heroicons/react/24/solid';
-import Button from '@/components/common/Button';
+import { toast } from 'react-hot-toast';
+import { CheckIcon } from '@heroicons/react/24/solid';
+import { ClipboardDocumentIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
+import SEO from '@/components/common/SEO';
+import CheckoutStepper from '@/components/storefront/CheckoutStepper';
+import Confetti from '@/components/storefront/Confetti';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import { SfLinkButton } from '@/components/storefront/SfButton';
+import { container } from '@/components/storefront/utils';
 
 const PaymentSuccess: React.FC = () => {
   const location = useLocation();
-  const orderId = location.state?.orderId;
+  const orderId = (location.state as { orderId?: string } | null)?.orderId;
+
+  const copyOrderId = async () => {
+    if (!orderId) return;
+    try {
+      await navigator.clipboard.writeText(orderId);
+      toast.success('Order ID copied');
+    } catch {
+      toast.error('Could not copy the order ID');
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-md w-full text-center"
-      >
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
-            className="mx-auto h-16 w-16 text-green-500 mb-6"
-          >
-            <CheckCircleIcon />
-          </motion.div>
+    <div className={clsx(container, 'pt-8 sm:pt-10')}>
+      <SEO title="Order Confirmed" />
+      <Confetti />
+      <CheckoutStepper current="Done" />
 
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Payment Successful!</h1>
-          <p className="text-gray-600 mb-6">
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.97 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+        className="mx-auto mt-12 max-w-lg"
+      >
+        <GlassPanel glow className="relative overflow-hidden text-center shadow-sf-float sm:p-10">
+          <div aria-hidden="true" className="absolute inset-x-0 -top-24 mx-auto h-64 w-64 rounded-full bg-sf-gradient opacity-25 blur-3xl" />
+
+          {/* Layered "3D" success badge */}
+          <div className="relative mx-auto h-28 w-28 [perspective:600px]">
+            <motion.span
+              aria-hidden="true"
+              initial={{ scale: 0.4, opacity: 0 }}
+              animate={{ scale: [0.4, 1.25, 1], opacity: [0, 0.6, 0.25] }}
+              transition={{ duration: 1.2, delay: 0.1 }}
+              className="absolute inset-0 rounded-full bg-sf-success/40"
+            />
+            <motion.span
+              aria-hidden="true"
+              initial={{ rotateX: 70, scale: 0.6, opacity: 0 }}
+              animate={{ rotateX: 0, scale: 1, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 180, damping: 14, delay: 0.15 }}
+              className="absolute inset-3 flex items-center justify-center rounded-full bg-sf-gradient text-sf-on-accent shadow-sf-glow ring-4 ring-sf-surface"
+            >
+              <CheckIcon className="h-11 w-11" />
+            </motion.span>
+          </div>
+
+          <h1 className="relative mt-8 font-display text-3xl font-semibold tracking-tight text-sf-ink sm:text-4xl">
+            Payment Successful!
+          </h1>
+          <p className="relative mx-auto mt-3 max-w-sm text-sf-muted">
             Your order has been placed successfully. You will receive a confirmation email shortly.
           </p>
 
           {orderId && (
-            <div className="bg-gray-50 rounded-lg p-4 mb-6">
-              <p className="text-sm text-gray-600">Order ID</p>
-              <p className="font-mono text-sm font-medium text-gray-900">{orderId}</p>
+            <div className="relative mt-8 flex items-center justify-between gap-3 rounded-sf-lg bg-sf-surface-2/80 p-4 text-left ring-1 ring-sf-line">
+              <div className="min-w-0">
+                <p className="text-xs uppercase tracking-[0.16em] text-sf-subtle">Order ID</p>
+                <p className="mt-1 truncate font-mono text-sm font-medium text-sf-ink">{orderId}</p>
+              </div>
+              <button
+                type="button"
+                onClick={copyOrderId}
+                aria-label="Copy order ID"
+                className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full text-sf-muted transition-colors hover:bg-sf-surface-3 hover:text-sf-ink"
+              >
+                <ClipboardDocumentIcon className="h-5 w-5" />
+              </button>
             </div>
           )}
 
-          <div className="space-y-3">
+          <div className="relative mt-8 space-y-3">
             {orderId && (
-              <Link to={`/orders/${orderId}`}>
-                <Button fullWidth>View Order Details</Button>
-              </Link>
+              <SfLinkButton to={`/orders/${orderId}`} size="lg" fullWidth rightIcon={<ArrowRightIcon className="h-5 w-5" />}>
+                View Order Details
+              </SfLinkButton>
             )}
-            <Link to="/orders">
-              <Button variant="outline" fullWidth>View All Orders</Button>
-            </Link>
-            <Link to="/products">
-              <Button variant="ghost" fullWidth>Continue Shopping</Button>
-            </Link>
+            <SfLinkButton to="/orders" variant={orderId ? 'outline' : 'primary'} size="lg" fullWidth>
+              View All Orders
+            </SfLinkButton>
+            <SfLinkButton to="/products" variant="ghost" fullWidth>
+              Continue Shopping
+            </SfLinkButton>
           </div>
-        </div>
+        </GlassPanel>
       </motion.div>
     </div>
   );

@@ -163,3 +163,327 @@
     break-inside: avoid;
   }
 }
+/* ==========================================================================
+   LaptopWorld storefront design system
+   Tokens are consumed through the `sf` Tailwind theme (tailwind.config.js).
+   Light values live on :root, dark values on .dark. The storefront shell adds
+   `sf-theme` (+ `.dark`) to <html> only while a customer page is mounted, so
+   admin/vendor screens are never affected.
+   ========================================================================== */
+@layer base {
+  :root {
+    --sf-bg: 246 247 251;
+    --sf-bg-elevated: 255 255 255;
+    --sf-surface: 255 255 255;
+    --sf-surface-2: 238 240 246;
+    --sf-surface-3: 224 228 238;
+    --sf-ink: 12 14 20;
+    --sf-muted: 71 80 99;
+    --sf-subtle: 96 104 122;
+    --sf-accent: 45 80 230;
+    --sf-accent-strong: 61 90 254;
+    --sf-violet: 109 40 217;
+    --sf-violet-strong: 124 58 237;
+    --sf-cyan: 8 145 178;
+    --sf-success: 22 110 52;
+    --sf-warning: 154 72 6;
+    --sf-danger: 200 30 30;
+    --sf-on-accent: 255 255 255;
+    --sf-plate-from: 255 255 255;
+    --sf-plate-to: 226 230 240;
+    --sf-device: 16 18 25;
+    --sf-alu-from: 226 229 236;
+    --sf-alu-to: 160 167 182;
+    --sf-line: rgb(15 23 42 / 0.09);
+    --sf-line-strong: rgb(15 23 42 / 0.16);
+    --sf-glass: rgb(255 255 255 / 0.7);
+    --sf-glass-strong: rgb(255 255 255 / 0.88);
+    --sf-radius-sm: 0.625rem;
+    --sf-radius: 1rem;
+    --sf-radius-lg: 1.5rem;
+    --sf-radius-xl: 2rem;
+    --sf-shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 10px 30px -14px rgb(15 23 42 / 0.16);
+    --sf-shadow-float: 0 30px 60px -24px rgb(15 23 42 / 0.28), 0 10px 24px -12px rgb(15 23 42 / 0.14);
+    --sf-shadow-glow: 0 0 0 1px rgb(var(--sf-accent-strong) / 0.22), 0 10px 34px -8px rgb(var(--sf-accent-strong) / 0.4);
+    --sf-grid-line: rgb(15 23 42 / 0.05);
+    --sf-mesh-a: rgb(var(--sf-accent-strong) / 0.14);
+    --sf-mesh-b: rgb(var(--sf-violet-strong) / 0.12);
+    --sf-mesh-c: rgb(var(--sf-cyan) / 0.08);
+  }
+
+  .dark {
+    --sf-bg: 7 8 12;
+    --sf-bg-elevated: 12 14 20;
+    --sf-surface: 17 20 28;
+    --sf-surface-2: 26 30 41;
+    --sf-surface-3: 38 43 57;
+    --sf-ink: 240 242 247;
+    --sf-muted: 168 175 192;
+    --sf-subtle: 128 136 154;
+    --sf-accent: 138 164 255;
+    --sf-violet: 192 160 255;
+    --sf-cyan: 103 232 249;
+    --sf-success: 74 222 128;
+    --sf-warning: 251 191 36;
+    --sf-danger: 248 113 113;
+    --sf-plate-from: 236 238 244;
+    --sf-plate-to: 178 185 201;
+    --sf-alu-from: 150 158 176;
+    --sf-alu-to: 70 76 92;
+    --sf-line: rgb(255 255 255 / 0.08);
+    --sf-line-strong: rgb(255 255 255 / 0.16);
+    --sf-glass: rgb(17 20 28 / 0.62);
+    --sf-glass-strong: rgb(17 20 28 / 0.86);
+    --sf-shadow-card: 0 1px 0 rgb(255 255 255 / 0.04) inset, 0 18px 40px -20px rgb(0 0 0 / 0.7);
+    --sf-shadow-float: 0 40px 80px -30px rgb(0 0 0 / 0.85), 0 0 0 1px rgb(255 255 255 / 0.05);
+    --sf-shadow-glow: 0 0 0 1px rgb(var(--sf-accent-strong) / 0.45), 0 0 36px -6px rgb(var(--sf-accent-strong) / 0.55);
+    --sf-grid-line: rgb(255 255 255 / 0.045);
+    --sf-mesh-a: rgb(var(--sf-accent-strong) / 0.22);
+    --sf-mesh-b: rgb(var(--sf-violet-strong) / 0.2);
+    --sf-mesh-c: rgb(var(--sf-cyan) / 0.07);
+  }
+
+  html.sf-theme,
+  html.sf-boot,
+  html.sf-boot body {
+    background-color: rgb(var(--sf-bg));
+    color-scheme: light;
+  }
+
+  html.sf-boot.dark {
+    color-scheme: dark;
+  }
+
+  html.sf-theme.dark {
+    color-scheme: dark;
+  }
+
+  html.sf-theme body {
+    background-color: rgb(var(--sf-bg));
+    color: rgb(var(--sf-ink));
+    font-family: theme('fontFamily.body');
+  }
+
+  /* :where() keeps this default below utility classes (e.g. fields that draw their own ring). */
+  html.sf-theme :where(:focus-visible) {
+    outline: 2px solid rgb(var(--sf-accent-strong));
+    outline-offset: 2px;
+  }
+
+  html.sf-theme ::selection {
+    background: rgb(var(--sf-accent-strong) / 0.35);
+  }
+
+  html.sf-theme.dark ::-webkit-scrollbar-track {
+    background: rgb(var(--sf-bg));
+  }
+
+  html.sf-theme.dark ::-webkit-scrollbar-thumb {
+    background: rgb(var(--sf-surface-3));
+  }
+}
+
+@layer components {
+  .sf-glass {
+    background-color: var(--sf-glass);
+    border: 1px solid var(--sf-line);
+    -webkit-backdrop-filter: blur(18px) saturate(140%);
+    backdrop-filter: blur(18px) saturate(140%);
+  }
+
+  .sf-card {
+    background-color: rgb(var(--sf-surface));
+    border: 1px solid var(--sf-line);
+    border-radius: var(--sf-radius-lg);
+    box-shadow: var(--sf-shadow-card);
+  }
+
+  .sf-gradient-text {
+    background-image: linear-gradient(120deg, rgb(var(--sf-accent)) 0%, rgb(var(--sf-violet)) 60%, rgb(var(--sf-accent)) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* 1px gradient hairline around an element, without touching layout. */
+  .sf-gradient-border {
+    position: relative;
+  }
+
+  .sf-gradient-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgb(var(--sf-accent-strong) / 0.7), rgb(var(--sf-violet-strong) / 0.15) 45%, rgb(var(--sf-violet-strong) / 0.6));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  .sf-grid-bg {
+    background-image:
+      linear-gradient(var(--sf-grid-line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--sf-grid-line) 1px, transparent 1px);
+    background-size: 56px 56px;
+    -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+    mask-image: radial-gradient(ellipse 80% 60% at 50% 0%, #000 30%, transparent 75%);
+  }
+
+  .sf-skeleton {
+    position: relative;
+    overflow: hidden;
+    background-color: rgb(var(--sf-surface-2));
+  }
+
+  .sf-skeleton::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgb(var(--sf-ink) / 0.06), transparent);
+    animation: sf-shimmer 1.6s ease-in-out infinite;
+  }
+
+  .sf-prose {
+    --tw-prose-body: rgb(var(--sf-muted));
+    --tw-prose-headings: rgb(var(--sf-ink));
+    --tw-prose-links: rgb(var(--sf-accent));
+    --tw-prose-bold: rgb(var(--sf-ink));
+    --tw-prose-bullets: rgb(var(--sf-accent));
+    --tw-prose-counters: rgb(var(--sf-subtle));
+    --tw-prose-hr: var(--sf-line);
+    --tw-prose-quotes: rgb(var(--sf-ink));
+    --tw-prose-quote-borders: rgb(var(--sf-accent-strong));
+  }
+}
+
+@keyframes sf-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html.sf-theme *,
+  html.sf-theme *::before,
+  html.sf-theme *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Storefront interaction primitives (driven by components/storefront/*) */
+@layer components {
+  .sf-tilt-root {
+    --sf-rx: 0deg;
+    --sf-ry: 0deg;
+    --sf-tx: 0;
+    --sf-ty: 0;
+    --sf-px: 50%;
+    --sf-py: 50%;
+    --sf-lift: 0px;
+    perspective: 1100px;
+  }
+
+  .sf-tilt {
+    position: relative;
+    height: 100%;
+    transform: translate3d(0, var(--sf-lift), 0) rotateX(var(--sf-rx)) rotateY(var(--sf-ry));
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sf-tilt-root[data-tilting='true'] .sf-tilt {
+    transition-duration: 0.12s;
+  }
+
+  .sf-tilt-root[data-tilt='true']:hover {
+    --sf-lift: -6px;
+  }
+
+  /* Depth layers only lift while a tilt card is hovered, so at rest nothing is
+     scaled by the perspective and no extra containing blocks are created. */
+  .sf-depth-1,
+  .sf-depth-2,
+  .sf-depth-3 {
+    transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sf-tilt-root[data-tilt='true']:hover .sf-depth-1 { transform: translateZ(18px); }
+  .sf-tilt-root[data-tilt='true']:hover .sf-depth-2 { transform: translateZ(36px); }
+  .sf-tilt-root[data-tilt='true']:hover .sf-depth-3 { transform: translateZ(54px); }
+
+  .sf-tilt-glare {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    border-radius: inherit;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    transform: translateZ(60px);
+  }
+
+  .sf-tilt-glare > span {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(closest-side, rgb(255 255 255 / 0.22), transparent 70%);
+    transform: translate3d(calc(var(--sf-px) / 2 - 50%), calc(var(--sf-py) / 2 - 50%), 0);
+  }
+
+  .sf-tilt-root:hover .sf-tilt-glare {
+    opacity: 1;
+  }
+
+  .sf-tilt-shadow {
+    position: absolute;
+    left: 12%;
+    right: 12%;
+    bottom: -18px;
+    height: 36px;
+    border-radius: 9999px;
+    background: rgb(var(--sf-accent-strong) / 0.35);
+    filter: blur(22px);
+    opacity: 0;
+    pointer-events: none;
+    transform: translate3d(calc(var(--sf-tx) * -18px), calc(var(--sf-ty) * -8px), 0);
+    transition: opacity 0.4s ease, transform 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .sf-tilt-root:hover .sf-tilt-shadow {
+    opacity: 1;
+  }
+
+  .sf-fly-ghost {
+    position: fixed;
+    z-index: 100;
+    pointer-events: none;
+    overflow: hidden;
+    border-radius: var(--sf-radius);
+    background-image: radial-gradient(120% 90% at 50% 20%, rgb(var(--sf-plate-from)) 0%, rgb(var(--sf-plate-to)) 100%);
+    box-shadow: var(--sf-shadow-glow);
+    will-change: transform, opacity;
+  }
+
+  .sf-fly-ghost img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    mix-blend-mode: multiply;
+  }
+
+  .sf-field:-webkit-autofill,
+  .sf-field:-webkit-autofill:hover,
+  .sf-field:-webkit-autofill:focus {
+    -webkit-text-fill-color: rgb(var(--sf-ink));
+    box-shadow: 0 0 0 1000px rgb(var(--sf-surface-2)) inset;
+    transition: background-color 9999s ease-out 0s;
+  }
+}

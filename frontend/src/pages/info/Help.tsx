@@ -1,6 +1,20 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  ShoppingBagIcon,
+  CreditCardIcon,
+  TruckIcon,
+  ArrowPathIcon,
+  ChevronDownIcon,
+  EnvelopeIcon,
+} from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
 import SEO from '@/components/common/SEO';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import { RevealGroup, RevealItem } from '@/components/storefront/Reveal';
+import { SfLinkButton, sfButtonClasses } from '@/components/storefront/SfButton';
+import { Accent, InfoCta, InfoHero, InfoSection, slugify } from '@/components/storefront/InfoPage';
 
 const faqs = [
   {
@@ -61,6 +75,13 @@ const faqs = [
   },
 ];
 
+const groupIcons: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>> = {
+  Orders: ShoppingBagIcon,
+  Payments: CreditCardIcon,
+  Shipping: TruckIcon,
+  Returns: ArrowPathIcon,
+};
+
 const Help: React.FC = () => {
   const [open, setOpen] = useState<string | null>(null);
 
@@ -72,86 +93,131 @@ const Help: React.FC = () => {
         keywords="LaptopWorld help, FAQ, laptop order support, returns India"
       />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold sm:text-5xl mb-4">
-            Help{' '}
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-              Center
-            </span>
-          </h1>
-          <p className="mt-4 text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
+      <InfoHero
+        eyebrow="Support"
+        title={
+          <>
+            Help <Accent>Center</Accent>
+          </>
+        }
+        subtitle={
+          <>
             Find quick answers to common questions. Can't find what you need?{' '}
-            <Link to="/contact" className="underline hover:text-white">
+            <Link to="/contact" className="font-medium text-sf-accent underline-offset-4 hover:underline">
               Contact us
             </Link>
             .
-          </p>
-        </div>
-      </section>
+          </>
+        }
+      />
+
+      {/* Topic shortcuts */}
+      <nav aria-label="FAQ topics" className="mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8">
+        <RevealGroup as="ul" className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          {faqs.map((group) => {
+            const Icon = groupIcons[group.category] ?? ShoppingBagIcon;
+            return (
+              <RevealItem as="li" key={group.category}>
+                <a
+                  href={`#faq-${slugify(group.category)}`}
+                  className="sf-glass group flex items-center gap-3 rounded-sf-lg p-4 transition-colors hover:border-sf-accent/40"
+                >
+                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-sf bg-sf-gradient text-sf-on-accent shadow-sf-glow transition-transform duration-300 group-hover:-translate-y-0.5">
+                    <Icon aria-hidden="true" className="h-5 w-5" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-sf-ink">{group.category}</span>
+                    <span className="block text-xs text-sf-subtle">{group.items.length} questions</span>
+                  </span>
+                </a>
+              </RevealItem>
+            );
+          })}
+        </RevealGroup>
+      </nav>
 
       {/* FAQ */}
-      <section className="bg-gray-50 py-16">
-        <div className="mx-auto max-w-3xl px-6 lg:px-8">
-          {faqs.map((group) => (
-            <div key={group.category} className="mb-10">
-              <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                <span className="w-2 h-6 bg-blue-600 rounded-full inline-block" />
-                {group.category}
-              </h2>
-              <div className="space-y-3">
-                {group.items.map((item) => {
-                  const key = `${group.category}-${item.q}`;
-                  return (
-                    <div key={key} className="card overflow-hidden">
-                      <button
-                        className="w-full text-left px-6 py-4 flex items-center justify-between"
-                        onClick={() => setOpen(open === key ? null : key)}
-                      >
-                        <span className="font-medium text-gray-900 text-sm">{item.q}</span>
-                        <svg
-                          className={`h-5 w-5 text-gray-400 transition-transform flex-shrink-0 ml-4 ${open === key ? 'rotate-180' : ''}`}
-                          fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                        </svg>
-                      </button>
-                      {open === key && (
-                        <div className="px-6 pb-5 border-t border-gray-100">
-                          <p className="text-sm text-gray-600 leading-relaxed mt-3">{item.a}</p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+      <InfoSection narrow>
+        <div className="space-y-12">
+          {faqs.map((group) => {
+            const Icon = groupIcons[group.category] ?? ShoppingBagIcon;
+            const groupId = `faq-${slugify(group.category)}`;
+            return (
+              <section key={group.category} id={groupId} aria-labelledby={`${groupId}-heading`} className="scroll-mt-28">
+                <h2 id={`${groupId}-heading`} className="mb-4 flex items-center gap-3 font-display text-xl font-semibold text-sf-ink">
+                  <Icon aria-hidden="true" className="h-6 w-6 text-sf-accent" />
+                  {group.category}
+                </h2>
+                <RevealGroup as="ul" className="space-y-3">
+                  {group.items.map((item) => {
+                    const key = `${group.category}-${item.q}`;
+                    const isOpen = open === key;
+                    const panelId = `${groupId}-${slugify(item.q)}`;
+                    return (
+                      <RevealItem as="li" key={key}>
+                        <GlassPanel padded={false} className={clsx('overflow-hidden transition-colors', isOpen && 'border-sf-accent/40')}>
+                          <h3>
+                            <button
+                              type="button"
+                              id={`${panelId}-button`}
+                              aria-expanded={isOpen}
+                              aria-controls={panelId}
+                              onClick={() => setOpen(isOpen ? null : key)}
+                              className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left sm:px-6"
+                            >
+                              <span className="text-sm font-medium text-sf-ink sm:text-base">{item.q}</span>
+                              <ChevronDownIcon
+                                aria-hidden="true"
+                                className={clsx(
+                                  'h-5 w-5 flex-shrink-0 text-sf-subtle transition-transform duration-300',
+                                  isOpen && 'rotate-180 text-sf-accent'
+                                )}
+                              />
+                            </button>
+                          </h3>
+                          <AnimatePresence initial={false}>
+                            {isOpen && (
+                              <motion.div
+                                id={panelId}
+                                role="region"
+                                aria-labelledby={`${panelId}-button`}
+                                initial={{ opacity: 0, y: -6 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.25 }}
+                                className="border-t border-sf-line px-5 pb-5 sm:px-6"
+                              >
+                                <p className="mt-3 text-sm leading-relaxed text-sf-muted">{item.a}</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </GlassPanel>
+                      </RevealItem>
+                    );
+                  })}
+                </RevealGroup>
+              </section>
+            );
+          })}
         </div>
-      </section>
+      </InfoSection>
 
-      {/* Still need help */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-14">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">Still Need Help?</h2>
-          <p className="text-blue-100 mb-6">Our support team is available Mon–Sat, 9 AM – 7 PM IST.</p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              to="/contact"
-              className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-lg"
-            >
+      <InfoCta
+        title="Still Need Help?"
+        actions={
+          <>
+            <SfLinkButton to="/contact" size="lg">
               Contact Support
-            </Link>
-            <a
-              href="mailto:sagarcomputersatara@gmail.com"
-              className="px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-blue-600 transition-colors"
-            >
+            </SfLinkButton>
+            <a href="mailto:sagarcomputersatara@gmail.com" className={sfButtonClasses({ variant: 'secondary', size: 'lg' })}>
+              <EnvelopeIcon aria-hidden="true" className="h-5 w-5" />
               Email Us
             </a>
-          </div>
-        </div>
-      </section>
+          </>
+        }
+      >
+        Our support team is available Mon–Sat, 9 AM – 7 PM IST.
+      </InfoCta>
     </>
   );
 };

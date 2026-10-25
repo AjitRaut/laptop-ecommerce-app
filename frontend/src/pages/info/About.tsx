@@ -1,6 +1,24 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import {
+  CheckBadgeIcon,
+  HeartIcon,
+  CalculatorIcon,
+  GlobeAsiaAustraliaIcon,
+  UserGroupIcon,
+  ChatBubbleLeftRightIcon,
+  BuildingStorefrontIcon,
+  MapPinIcon,
+  PhoneIcon,
+  ArrowRightIcon,
+  EnvelopeIcon,
+} from '@heroicons/react/24/outline';
 import SEO from '@/components/common/SEO';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import SectionHeading from '@/components/storefront/SectionHeading';
+import { ExtrudedCard, IsoCube } from '@/components/storefront/Extruded';
+import { Reveal, RevealGroup, RevealItem } from '@/components/storefront/Reveal';
+import { SfLinkButton, sfButtonClasses } from '@/components/storefront/SfButton';
+import { Accent, InfoCta, InfoHero, InfoSection, InfoStats } from '@/components/storefront/InfoPage';
 
 const stats = [
   { label: 'Products Listed', value: '500+' },
@@ -14,41 +32,25 @@ const values = [
     title: 'Quality First',
     description:
       'Every product on LaptopWorld is verified and curated. We partner only with trusted vendors who meet our quality standards.',
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-      </svg>
-    ),
+    icon: CheckBadgeIcon,
   },
   {
     title: 'Customer Obsessed',
     description:
       'From browsing to delivery, we obsess over every step of your experience. Your satisfaction is not a metric — it is our mission.',
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-      </svg>
-    ),
+    icon: HeartIcon,
   },
   {
     title: 'Transparent Pricing',
     description:
       'No hidden fees, no surprise charges. What you see is what you pay. We believe in honest, upfront pricing on every product.',
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-      </svg>
-    ),
+    icon: CalculatorIcon,
   },
   {
     title: 'Pan-India Reach',
     description:
       'Based in Satara, Maharashtra, we serve customers across India with reliable logistics and fast delivery to your doorstep.',
-    icon: (
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
-    ),
+    icon: GlobeAsiaAustraliaIcon,
   },
 ];
 
@@ -58,18 +60,36 @@ const team = [
     role: 'Viswa Naka, Satara',
     description:
       'LaptopWorld was founded with a single vision — to make premium computing accessible to every Indian household and business.',
+    icon: BuildingStorefrontIcon,
   },
   {
     name: 'Our Support Team',
     role: 'Customer Happiness',
     description:
       'A dedicated team available to help you choose the right device, resolve queries, and ensure your orders arrive on time.',
+    icon: ChatBubbleLeftRightIcon,
   },
   {
     name: 'Our Vendor Network',
     role: 'Quality Partners',
     description:
       'We work with 50+ vetted vendors across India to bring you the widest selection of laptops and accessories at competitive prices.',
+    icon: UserGroupIcon,
+  },
+];
+
+const milestones = [
+  {
+    title: 'Founded in Satara',
+    description: "Born out of a real customer problem in Maharashtra's tech retail scene.",
+  },
+  {
+    title: 'Multi-Vendor Platform',
+    description: 'We onboarded 50+ verified vendors to bring competitive pricing and wider selection.',
+  },
+  {
+    title: 'Pan-India Delivery',
+    description: 'Expanded logistics to serve customers in 100+ cities across India.',
   },
 ];
 
@@ -82,193 +102,149 @@ const About: React.FC = () => {
         keywords="about LaptopWorld, laptop store India, Satara laptop shop, premium laptops"
       />
 
-      {/* Hero Section */}
-      <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold tracking-tight sm:text-5xl mb-4">
-            About{' '}
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-              LaptopWorld
-            </span>
-          </h1>
-          <p className="mt-4 text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-            Your trusted destination for premium laptops and accessories. We've been helping
-            customers find the perfect device since day one — quality products, honest prices,
-            exceptional service.
-          </p>
-          <div className="mt-8 flex flex-wrap justify-center gap-4">
-            <Link to="/products" className="btn-primary px-8 py-3 text-base">
+      <InfoHero
+        eyebrow="About us"
+        title={
+          <>
+            About <Accent>LaptopWorld</Accent>
+          </>
+        }
+        subtitle="Your trusted destination for premium laptops and accessories. We've been helping customers find the perfect device since day one — quality products, honest prices, exceptional service."
+        actions={
+          <>
+            <SfLinkButton to="/products" size="lg" rightIcon={<ArrowRightIcon className="h-5 w-5" />}>
               Browse Products
-            </Link>
-            <Link
-              to="/contact"
-              className="px-8 py-3 text-base border-2 border-white text-white rounded-lg hover:bg-white hover:text-blue-700 transition-colors font-medium"
-            >
+            </SfLinkButton>
+            <SfLinkButton to="/contact" variant="secondary" size="lg">
               Contact Us
-            </Link>
-          </div>
-        </div>
-      </section>
+            </SfLinkButton>
+          </>
+        }
+      />
 
-      {/* Stats Section */}
-      <section className="bg-white border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-          <div className="grid grid-cols-2 gap-8 md:grid-cols-4">
-            {stats.map((stat) => (
-              <div key={stat.label} className="text-center">
-                <p className="text-3xl font-bold gradient-text">{stat.value}</p>
-                <p className="mt-1 text-sm text-gray-500">{stat.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <InfoStats stats={stats} />
 
       {/* Our Story */}
-      <section className="bg-gray-50 py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
-            <div>
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Story</h2>
-              <div className="space-y-4 text-gray-600 leading-relaxed">
-                <p>
-                  LaptopWorld started with a simple observation: buying a laptop in India was
-                  unnecessarily complicated. Customers had to visit multiple stores, compare
-                  inconsistent prices, and rely on salespeople who didn't always have their best
-                  interests at heart.
-                </p>
-                <p>
-                  Founded in Satara, Maharashtra, we set out to build a platform where customers
-                  could discover verified products from trusted vendors, compare options side by
-                  side, and buy with complete confidence — all from the comfort of their home.
-                </p>
-                <p>
-                  Today, LaptopWorld serves thousands of customers across India, from students
-                  buying their first laptop to businesses equipping entire teams. We remain
-                  committed to the values we started with: transparency, quality, and service.
-                </p>
-              </div>
+      <InfoSection labelledBy="about-story">
+        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-2 lg:gap-16">
+          <Reveal>
+            <SectionHeading eyebrow="Our story" title={<span id="about-story">Our Story</span>} />
+            <div className="mt-6 space-y-4 text-base leading-relaxed text-sf-muted">
+              <p>
+                LaptopWorld started with a simple observation: buying a laptop in India was unnecessarily complicated.
+                Customers had to visit multiple stores, compare inconsistent prices, and rely on salespeople who didn't
+                always have their best interests at heart.
+              </p>
+              <p>
+                Founded in Satara, Maharashtra, we set out to build a platform where customers could discover verified
+                products from trusted vendors, compare options side by side, and buy with complete confidence — all from
+                the comfort of their home.
+              </p>
+              <p>
+                Today, LaptopWorld serves thousands of customers across India, from students buying their first laptop to
+                businesses equipping entire teams. We remain committed to the values we started with: transparency,
+                quality, and service.
+              </p>
             </div>
-            <div className="mt-10 lg:mt-0">
-              <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl p-8 border border-blue-100">
-                <div className="space-y-6">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-blue-600 font-bold text-sm">01</span>
+          </Reveal>
+          <Reveal delay={0.1}>
+            <GlassPanel glow className="p-6 sm:p-8">
+              <ol className="relative space-y-8">
+                <span aria-hidden="true" className="absolute bottom-3 left-5 top-3 w-px bg-sf-gradient opacity-60" />
+                {milestones.map((milestone, index) => (
+                  <li key={milestone.title} className="relative flex items-start gap-4">
+                    <span className="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-sf-gradient font-display text-sm font-semibold text-sf-on-accent shadow-sf-glow">
+                      {String(index + 1).padStart(2, '0')}
+                    </span>
+                    <div className="pt-1">
+                      <h3 className="font-display font-semibold text-sf-ink">{milestone.title}</h3>
+                      <p className="mt-1 text-sm leading-relaxed text-sf-muted">{milestone.description}</p>
                     </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">Founded in Satara</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Born out of a real customer problem in Maharashtra's tech retail scene.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-purple-600 font-bold text-sm">02</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">Multi-Vendor Platform</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        We onboarded 50+ verified vendors to bring competitive pricing and wider selection.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <span className="text-green-600 font-bold text-sm">03</span>
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">Pan-India Delivery</h3>
-                      <p className="text-sm text-gray-500 mt-1">
-                        Expanded logistics to serve customers in 100+ cities across India.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
+                  </li>
+                ))}
+              </ol>
+            </GlassPanel>
+          </Reveal>
         </div>
-      </section>
+      </InfoSection>
 
-      {/* Our Values */}
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">What We Stand For</h2>
-            <p className="mt-3 text-gray-500 max-w-xl mx-auto">
-              These aren't just words on a page — they're the principles that shape every
-              decision we make at LaptopWorld.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {values.map((value) => (
-              <div key={value.title} className="card p-6">
-                <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4">
-                  {value.icon}
-                </div>
-                <h3 className="font-semibold text-gray-900 mb-2">{value.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{value.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Values */}
+      <InfoSection labelledBy="about-values" className="pt-0 sm:pt-4">
+        <SectionHeading
+          align="center"
+          eyebrow="Our values"
+          title={<span id="about-values">What We Stand For</span>}
+          description="These aren't just words on a page — they're the principles that shape every decision we make at LaptopWorld."
+        />
+        <RevealGroup className="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
+          {values.map((value) => (
+            <RevealItem key={value.title} className="h-full">
+              <ExtrudedCard faceClassName="p-6">
+                <IsoCube icon={value.icon} size={44} />
+                <h3 className="mt-5 font-display text-lg font-semibold text-sf-ink">{value.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-sf-muted">{value.description}</p>
+              </ExtrudedCard>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </InfoSection>
 
       {/* Team / People */}
-      <section className="bg-gray-50 py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-gray-900">The People Behind LaptopWorld</h2>
-            <p className="mt-3 text-gray-500 max-w-xl mx-auto">
-              A passionate team dedicated to making your laptop-buying experience seamless.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {team.map((member) => (
-              <div key={member.name} className="card p-6 text-center">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                  </svg>
-                </div>
-                <h3 className="font-semibold text-gray-900">{member.name}</h3>
-                <p className="text-sm text-blue-600 mb-3">{member.role}</p>
-                <p className="text-sm text-gray-500 leading-relaxed">{member.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <InfoSection labelledBy="about-people" className="pt-0 sm:pt-4">
+        <SectionHeading
+          align="center"
+          eyebrow="Our people"
+          title={<span id="about-people">The People Behind LaptopWorld</span>}
+          description="A passionate team dedicated to making your laptop-buying experience seamless."
+        />
+        <RevealGroup className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
+          {team.map((member) => (
+            <RevealItem key={member.name} className="h-full">
+              <GlassPanel className="h-full p-6 text-center sm:p-8">
+                <span className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-sf-gradient text-sf-on-accent shadow-sf-glow">
+                  <member.icon aria-hidden="true" className="h-8 w-8" />
+                </span>
+                <h3 className="mt-5 font-display text-lg font-semibold text-sf-ink">{member.name}</h3>
+                <p className="mt-1 text-sm font-medium text-sf-accent">{member.role}</p>
+                <p className="mt-3 text-sm leading-relaxed text-sf-muted">{member.description}</p>
+              </GlassPanel>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </InfoSection>
 
-      {/* Contact CTA */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-white mb-4">Have Questions?</h2>
-          <p className="text-blue-100 mb-8 max-w-xl mx-auto">
-            Our team is available to help you pick the right product or resolve any concern.
-            Reach out — we'd love to hear from you.
-          </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Link
-              to="/contact"
-              className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-lg"
-            >
+      <InfoCta
+        title="Have Questions?"
+        actions={
+          <>
+            <SfLinkButton to="/contact" size="lg">
               Get in Touch
-            </Link>
+            </SfLinkButton>
             <a
               href="mailto:sagarcomputersatara@gmail.com"
-              className="px-8 py-3 border-2 border-white text-white font-semibold rounded-lg hover:bg-white hover:text-blue-600 transition-colors"
+              className={sfButtonClasses({ variant: 'secondary', size: 'lg', className: 'max-w-full' })}
             >
-              sagarcomputersatara@gmail.com
+              <EnvelopeIcon aria-hidden="true" className="h-5 w-5 flex-shrink-0" />
+              <span className="truncate">sagarcomputersatara@gmail.com</span>
             </a>
-          </div>
-          <p className="mt-6 text-blue-200 text-sm">
-            📍 Viswa Naka, Satara, Maharashtra 415001 &nbsp;|&nbsp; 📞 +91 8007486058
-          </p>
-        </div>
-      </section>
+          </>
+        }
+        footnote={
+          <span className="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <span className="inline-flex items-center gap-1.5">
+              <MapPinIcon aria-hidden="true" className="h-4 w-4 text-sf-accent" />
+              Viswa Naka, Satara, Maharashtra 415001
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <PhoneIcon aria-hidden="true" className="h-4 w-4 text-sf-accent" />
+              +91 8007486058
+            </span>
+          </span>
+        }
+      >
+        Our team is available to help you pick the right product or resolve any concern. Reach out — we'd love to hear
+        from you.
+      </InfoCta>
     </>
   );
 };

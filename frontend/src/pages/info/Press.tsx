@@ -1,5 +1,20 @@
 import React from 'react';
+import {
+  CalendarDaysIcon,
+  FolderOpenIcon,
+  NewspaperIcon,
+  MapPinIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+} from '@heroicons/react/24/outline';
 import SEO from '@/components/common/SEO';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import SectionHeading from '@/components/storefront/SectionHeading';
+import StatusPill, { type StatusTone } from '@/components/storefront/StatusPill';
+import { ExtrudedCard, IsoCube } from '@/components/storefront/Extruded';
+import { RevealGroup, RevealItem } from '@/components/storefront/Reveal';
+import { sfButtonClasses } from '@/components/storefront/SfButton';
+import { Accent, InfoCta, InfoHero, InfoSection, InfoStats } from '@/components/storefront/InfoPage';
 
 const pressReleases = [
   {
@@ -39,11 +54,11 @@ const stats = [
   { value: '100+', label: 'Cities Served' },
 ];
 
-const tagColors: Record<string, string> = {
-  Milestone: 'bg-green-100 text-green-700',
-  Expansion: 'bg-blue-100 text-blue-700',
-  Growth: 'bg-purple-100 text-purple-700',
-  Launch: 'bg-orange-100 text-orange-700',
+const tagTones: Record<string, StatusTone> = {
+  Milestone: 'success',
+  Expansion: 'accent',
+  Growth: 'violet',
+  Launch: 'warning',
 };
 
 const Press: React.FC = () => {
@@ -55,114 +70,115 @@ const Press: React.FC = () => {
         keywords="LaptopWorld press, laptop marketplace India news, LaptopWorld media"
       />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold sm:text-5xl mb-4">
-            Press &{' '}
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-              Newsroom
-            </span>
-          </h1>
-          <p className="mt-4 text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-            The latest news, announcements, and milestones from LaptopWorld.
-          </p>
-        </div>
-      </section>
+      <InfoHero
+        eyebrow="Newsroom"
+        title={
+          <>
+            Press &amp; <Accent>Newsroom</Accent>
+          </>
+        }
+        subtitle="The latest news, announcements, and milestones from LaptopWorld."
+      />
 
-      {/* Stats */}
-      <section className="bg-white border-b border-gray-200">
-        <div className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((s) => (
-              <div key={s.label} className="text-center">
-                <p className="text-3xl font-bold gradient-text">{s.value}</p>
-                <p className="mt-1 text-sm text-gray-500">{s.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <InfoStats stats={stats} />
 
       {/* Press Releases */}
-      <section className="bg-gray-50 py-16">
-        <div className="mx-auto max-w-4xl px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-8">Press Releases</h2>
-          <div className="space-y-5">
-            {pressReleases.map((pr) => (
-              <div key={pr.title} className="card p-6">
-                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-3">
-                  <div className="flex items-center gap-3">
-                    <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${tagColors[pr.tag]}`}>
-                      {pr.tag}
-                    </span>
-                    <span className="text-xs text-gray-400">{pr.date}</span>
-                  </div>
+      <InfoSection narrow labelledBy="press-releases">
+        <SectionHeading eyebrow="Announcements" title={<span id="press-releases">Press Releases</span>} />
+        <RevealGroup as="ol" className="relative mt-10 space-y-5 border-l border-sf-line-strong pl-6 sm:pl-8">
+          {pressReleases.map((pr) => (
+            <RevealItem as="li" key={pr.title} className="relative">
+              <span
+                aria-hidden="true"
+                className="absolute -left-[31px] top-7 h-3 w-3 rounded-full bg-sf-gradient shadow-sf-glow ring-4 ring-sf-bg sm:-left-[39px]"
+              />
+              <GlassPanel as="article">
+                <div className="flex flex-wrap items-center gap-3">
+                  <StatusPill tone={tagTones[pr.tag] ?? 'neutral'} dot>
+                    {pr.tag}
+                  </StatusPill>
+                  <span className="inline-flex items-center gap-1.5 text-xs text-sf-subtle">
+                    <CalendarDaysIcon aria-hidden="true" className="h-4 w-4" />
+                    {pr.date}
+                  </span>
                 </div>
-                <h3 className="font-semibold text-gray-900 text-lg mb-2 leading-snug">{pr.title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{pr.summary}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+                <h3 className="mt-4 font-display text-lg font-semibold leading-snug text-sf-ink sm:text-xl">{pr.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-sf-muted">{pr.summary}</p>
+              </GlassPanel>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </InfoSection>
 
       {/* Media Kit & Contact */}
-      <section className="bg-white py-16">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {/* Media Kit */}
-            <div className="card p-8">
-              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-xl flex items-center justify-center mb-4 text-2xl">
-                🗂️
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Media Kit</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
-                Download our official logos, brand guidelines, product screenshots, and company fact sheet for editorial use.
+      <InfoSection className="pt-0" labelledBy="press-resources">
+        <h2 id="press-resources" className="sr-only">
+          Media resources
+        </h2>
+        <RevealGroup className="grid grid-cols-1 gap-8 md:grid-cols-2">
+          <RevealItem className="h-full">
+            <ExtrudedCard faceClassName="flex flex-col p-6 sm:p-8">
+              <IsoCube icon={FolderOpenIcon} size={44} />
+              <h3 className="mt-5 font-display text-xl font-semibold text-sf-ink">Media Kit</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-sf-muted">
+                Download our official logos, brand guidelines, product screenshots, and company fact sheet for editorial
+                use.
               </p>
               <a
                 href="mailto:sagarcomputersatara@gmail.com?subject=Media Kit Request"
-                className="inline-flex px-5 py-2.5 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 transition-colors"
+                className={sfButtonClasses({ variant: 'primary', className: 'mt-6 self-start' })}
               >
                 Request Media Kit
               </a>
-            </div>
-
-            {/* Press Contact */}
-            <div className="card p-8">
-              <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-xl flex items-center justify-center mb-4 text-2xl">
-                📰
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Press Enquiries</h3>
-              <p className="text-sm text-gray-500 leading-relaxed mb-4">
+            </ExtrudedCard>
+          </RevealItem>
+          <RevealItem className="h-full">
+            <ExtrudedCard faceClassName="flex flex-col p-6 sm:p-8">
+              <IsoCube icon={NewspaperIcon} size={44} />
+              <h3 className="mt-5 font-display text-xl font-semibold text-sf-ink">Press Enquiries</h3>
+              <p className="mt-2 flex-1 text-sm leading-relaxed text-sf-muted">
                 Are you a journalist or blogger covering Indian e-commerce or tech retail? We'd love to talk.
               </p>
               <a
                 href="mailto:sagarcomputersatara@gmail.com?subject=Press Enquiry"
-                className="inline-flex px-5 py-2.5 border-2 border-blue-600 text-blue-600 text-sm font-semibold rounded-lg hover:bg-blue-50 transition-colors"
+                className={sfButtonClasses({ variant: 'outline', className: 'mt-6 self-start' })}
               >
                 Contact Press Team
               </a>
-            </div>
-          </div>
-        </div>
-      </section>
+            </ExtrudedCard>
+          </RevealItem>
+        </RevealGroup>
+      </InfoSection>
 
-      {/* About blurb */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-14">
-        <div className="mx-auto max-w-3xl px-6 lg:px-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-4">About LaptopWorld</h2>
-          <p className="text-blue-100 leading-relaxed text-sm">
-            LaptopWorld is a multi-vendor laptop marketplace based in Satara, Maharashtra. Founded with the mission of making premium computing accessible to every Indian household and business, LaptopWorld connects customers with 50+ verified vendors offering 500+ products across 100+ cities. The platform is known for transparent pricing, quality-first vendor partnerships, and exceptional customer service.
-          </p>
-          <p className="mt-4 text-blue-200 text-sm">
-            📍 Viswa Naka, Satara, Maharashtra 415001 &nbsp;|&nbsp; 📞 +91 8007486058 &nbsp;|&nbsp;
-            <a href="mailto:sagarcomputersatara@gmail.com" className="underline hover:text-white">
+      <InfoCta
+        title="About LaptopWorld"
+        footnote={
+          <span className="inline-flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
+            <span className="inline-flex items-center gap-1.5">
+              <MapPinIcon aria-hidden="true" className="h-4 w-4 text-sf-accent" />
+              Viswa Naka, Satara, Maharashtra 415001
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <PhoneIcon aria-hidden="true" className="h-4 w-4 text-sf-accent" />
+              +91 8007486058
+            </span>
+            <a
+              href="mailto:sagarcomputersatara@gmail.com"
+              className="inline-flex items-center gap-1.5 font-medium text-sf-accent hover:underline"
+            >
+              <EnvelopeIcon aria-hidden="true" className="h-4 w-4" />
               sagarcomputersatara@gmail.com
             </a>
-          </p>
-        </div>
-      </section>
+          </span>
+        }
+      >
+        <p className="text-sm sm:text-base">
+          LaptopWorld is a multi-vendor laptop marketplace based in Satara, Maharashtra. Founded with the mission of
+          making premium computing accessible to every Indian household and business, LaptopWorld connects customers with
+          50+ verified vendors offering 500+ products across 100+ cities. The platform is known for transparent pricing,
+          quality-first vendor partnerships, and exceptional customer service.
+        </p>
+      </InfoCta>
     </>
   );
 };

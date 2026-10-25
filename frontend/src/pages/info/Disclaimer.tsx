@@ -1,5 +1,6 @@
 import React from 'react';
 import SEO from '@/components/common/SEO';
+import { LegalPage } from '@/components/storefront/InfoPage';
 
 const disclaimerSections = [
   {
@@ -24,40 +25,15 @@ const disclaimerSections = [
   },
 ];
 
-const LegalLayout: React.FC<{ title: string; subtitle: string; updated: string; children: React.ReactNode }> = ({
-  title, subtitle, updated, children,
-}) => (
-  <>
-    <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-      <div className="mx-auto max-w-7xl px-6 py-16 lg:px-8 text-center">
-        <h1 className="text-4xl font-bold sm:text-5xl mb-4">{title}</h1>
-        <p className="mt-4 text-lg text-blue-100 max-w-2xl mx-auto">{subtitle}</p>
-        <p className="mt-3 text-sm text-blue-200">Last updated: {updated}</p>
-      </div>
-    </section>
-    <section className="bg-gray-50 py-16">
-      <div className="mx-auto max-w-3xl px-6 lg:px-8">
-        <div className="card p-8 space-y-8">{children}</div>
-      </div>
-    </section>
-  </>
-);
-
 export const Disclaimer: React.FC = () => (
   <>
     <SEO title="Disclaimer" description="LaptopWorld's disclaimer regarding product information, pricing, and platform use." keywords="LaptopWorld disclaimer" />
-    <LegalLayout
+    <LegalPage
       title="Disclaimer"
       subtitle="Important information about the limitations of our platform and content."
       updated="January 1, 2025"
-    >
-      {disclaimerSections.map((s) => (
-        <div key={s.title}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-2">{s.title}</h2>
-          <p className="text-sm text-gray-600 leading-relaxed">{s.content}</p>
-        </div>
-      ))}
-    </LegalLayout>
+      sections={disclaimerSections}
+    />
   </>
 );
 

@@ -1,14 +1,18 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { HeartIcon, ShoppingCartIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { HeartIcon, ShoppingBagIcon, ShieldCheckIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
+import { clsx } from 'clsx';
 import { useAddToCartMutation, useAddToWishlistMutation } from '@/store/api/ordersApi';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'react-hot-toast';
-import Button from './Button';
-import Badge from './Badge';
 import { formatPrice } from '@/utils/formatters';
 import type { Product } from '@/types';
+import TiltCard from '../storefront/TiltCard';
+import ProductImage from '../storefront/ProductImage';
+import { SfButton } from '../storefront/SfButton';
+import { useCartFly } from '../storefront/CartFly';
+import { toNumber } from '../storefront/utils';
 
 interface ProductCardProps {
   product: Product;
@@ -16,15 +20,25 @@ interface ProductCardProps {
   className?: string;
 }
 
+/**
+ * Storefront product tile. The product name is a "stretched" link covering the
+ * card, so the wishlist / add-to-cart buttons are siblings of the link rather
+ * than nested inside it (nested interactive elements are invalid HTML).
+ */
 const ProductCard: React.FC<ProductCardProps> = ({ product, inWishlist = false, className }) => {
   const { isAuthenticated } = useAuth();
   const [addToCart, { isLoading: isAddingToCart }] = useAddToCartMutation();
   const [addToWishlist, { isLoading: isAddingToWishlist }] = useAddToWishlistMutation();
+  const { flyToCart } = useCartFly();
+  const imageRef = useRef<HTMLDivElement>(null);
+
+  const discount = toNumber(product.discount_percentage);
+  const productUrl = `/products/${product.id}`;
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isAuthenticated) {
       toast.error('Please login to add items to cart');
       return;
@@ -32,6 +46,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, inWishlist = false, 
 
     try {
       await addToCart({ product_id: product.id, quantity: 1 }).unwrap();
+      flyToCart(imageRef.current, product.primary_image);
       toast.success('Added to cart!');
     } catch (error) {
       toast.error('Failed to add to cart');
@@ -41,7 +56,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, inWishlist = false, 
   const handleAddToWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     if (!isAuthenticated) {
       toast.error('Please login to add items to wishlist');
       return;
@@ -56,102 +71,95 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, inWishlist = false, 
   };
 
   return (
-    <div className={`group relative bg-white rounded-2xl shadow-sm border border-gray-200 hover:shadow-xl transition-all duration-300 overflow-hidden ${className}`}>
-      <Link to={`/products/${product.id}`} className="block">
-        {/* Product Image */}
-        <div className="aspect-square w-full overflow-hidden bg-gray-100 rounded-t-2xl relative">
-          <img
-            src={product.primary_image || '/api/placeholder/400/400'}
+    <TiltCard className={clsx('h-full', className)} innerClassName="rounded-sf-lg">
+      <article className="group relative flex h-full flex-col rounded-sf-lg border border-sf-line bg-sf-surface/80 p-3 shadow-sf-card transition-colors duration-300 [transform-style:preserve-3d] hover:border-sf-accent/40">
+        {/* Whole-card click target. Keyboard and screen-reader users get the title link
+            below instead, so this duplicate is hidden from both. */}
+        <Link to={productUrl} tabIndex={-1} aria-hidden="true" className="absolute inset-0 rounded-sf-lg" />
+
+        {/* Image stage, lifted forward in 3D on hover-capable devices */}
+        <div ref={imageRef} className="sf-depth-2 pointer-events-none relative">
+          <ProductImage
+            src={product.primary_image}
             alt={product.name}
-            className="h-full w-full object-cover object-center group-hover:scale-110 transition-transform duration-500"
-            loading="lazy"
+            label={product.brand_name}
+            className="aspect-[4/3] w-full rounded-sf"
+            imgClassName="p-4 transition-transform duration-700 ease-sf-out group-hover:scale-[1.06]"
           />
-          
-          {/* Badges */}
-          <div className="absolute top-3 left-3 flex flex-col gap-2">
-            {product.is_featured && (
-              <Badge variant="warning" size="sm">Featured</Badge>
+          <div className="absolute left-3 top-3 flex flex-col items-start gap-1.5">
+            {discount > 0 && (
+              <span className="rounded-full bg-sf-gradient px-2.5 py-1 text-xs font-semibold text-sf-on-accent shadow-sf-glow">
+                {Math.round(discount)}% off
+              </span>
             )}
-            {parseFloat(product.discount_percentage) > 0 && (
-              <Badge variant="error" size="sm">
-                {product.discount_percentage}% OFF
-              </Badge>
+            {/* Solid surface so the pill stays legible over the photo */}
+            {product.is_featured && (
+              <span className="rounded-full bg-sf-surface px-2.5 py-1 text-xs font-medium text-sf-violet shadow-sf-card ring-1 ring-inset ring-sf-violet/30">
+                Featured
+              </span>
             )}
             {!product.is_in_stock && (
-              <Badge variant="default" size="sm">Out of Stock</Badge>
+              <span className="rounded-full bg-sf-surface px-2.5 py-1 text-xs font-medium text-sf-muted shadow-sf-card ring-1 ring-inset ring-sf-line-strong">
+                Out of stock
+              </span>
+            )}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={handleAddToWishlist}
+          disabled={isAddingToWishlist || inWishlist}
+          aria-label={inWishlist ? `${product.name} is in your wishlist` : `Add ${product.name} to wishlist`}
+          title={inWishlist ? 'In Wishlist' : 'Add to Wishlist'}
+          className="sf-depth-3 absolute right-6 top-6 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-sf-surface/90 text-sf-muted shadow-sf-card ring-1 ring-sf-line backdrop-blur transition-colors hover:text-sf-danger disabled:cursor-default"
+        >
+          {inWishlist ? <HeartIconSolid className="h-5 w-5 text-sf-danger" /> : <HeartIcon className="h-5 w-5" />}
+        </button>
+
+        {/* Info */}
+        {/* Clicks fall through this layer to the card link; only its controls catch them. */}
+        <div className="sf-depth-1 pointer-events-none flex flex-1 flex-col px-2 pb-1 pt-4">
+          <p className="text-xs font-medium uppercase tracking-[0.14em] text-sf-subtle">{product.brand_name}</p>
+          <h3 className="mt-1.5 line-clamp-2 font-display text-base font-semibold leading-snug text-sf-ink">
+            <Link to={productUrl} className="pointer-events-auto rounded-sm hover:text-sf-accent">
+              {product.name}
+            </Link>
+          </h3>
+
+          <div className="mt-3 flex flex-wrap items-baseline gap-x-2 gap-y-1">
+            <span className="font-display text-xl font-semibold tabular-nums text-sf-ink">
+              {formatPrice(product.discounted_price)}
+            </span>
+            {discount > 0 && (
+              <span className="text-sm tabular-nums text-sf-subtle line-through">{formatPrice(product.price)}</span>
             )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="absolute top-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-            <button
-              onClick={handleAddToWishlist}
-              disabled={isAddingToWishlist || inWishlist}
-              className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
-              title={inWishlist ? 'In Wishlist' : 'Add to Wishlist'}
-            >
-              {inWishlist ? (
-                <HeartIconSolid className="h-5 w-5 text-red-500" />
-              ) : (
-                <HeartIcon className="h-5 w-5 text-gray-600 hover:text-red-500" />
+          <div className="mt-auto flex items-center justify-between gap-2 pt-4">
+            <span className="inline-flex items-center gap-1.5 text-xs text-sf-subtle">
+              <ShieldCheckIcon className="h-4 w-4" />
+              {product.warranty_months} month warranty
+              {product.is_low_stock && product.is_in_stock && (
+                <span className="font-medium text-sf-warning">· Low stock</span>
               )}
-            </button>
-            {/* Not a <Link>: the whole card is already a link to the product (nested links are invalid HTML) */}
-            <span
-              className="p-2 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-colors"
-              title="Quick View"
-            >
-              <EyeIcon className="h-5 w-5 text-gray-600 hover:text-blue-500" />
             </span>
-          </div>
-
-          {/* Add to Cart Button - Shows on Hover */}
-          <div className="absolute bottom-3 left-3 right-3 transform translate-y-full opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
-            <Button
+            <SfButton
               onClick={handleAddToCart}
               loading={isAddingToCart}
               disabled={!product.is_in_stock}
               size="sm"
-              fullWidth
-              leftIcon={<ShoppingCartIcon className="h-4 w-4" />}
-              className="shadow-lg backdrop-blur-sm text-gray-900 border border-gray-200"
+              variant={product.is_in_stock ? 'primary' : 'outline'}
+              aria-label={product.is_in_stock ? `Add ${product.name} to cart` : `${product.name} is out of stock`}
+              leftIcon={<ShoppingBagIcon className="h-4 w-4" />}
+              className="pointer-events-auto relative z-10 px-3"
             >
-              {product.is_in_stock ? 'Add to Cart' : 'Out of Stock'}
-            </Button>
+              {product.is_in_stock ? 'Add' : 'Sold out'}
+            </SfButton>
           </div>
         </div>
-
-        {/* Product Info */}
-        <div className="p-4">
-          <div className="mb-2">
-            <p className="text-sm text-gray-500 mb-1">{product.brand_name}</p>
-            <h3 className="font-semibold text-gray-900 line-clamp-2 group-hover:text-blue-600 transition-colors">
-              {product.name}
-            </h3>
-          </div>
-
-          {/* Price */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl font-bold text-gray-900">
-              {formatPrice(product.discounted_price)}
-            </span>
-            {parseFloat(product.discount_percentage) > 0 && (
-              <span className="text-sm text-gray-500 line-through">
-                {formatPrice(product.price)}
-              </span>
-            )}
-          </div>
-
-          {/* Features */}
-          <div className="flex items-center justify-between text-sm text-gray-500">
-            <span>{product.warranty_months} month warranty</span>
-            {product.is_low_stock && product.is_in_stock && (
-              <span className="text-orange-600 font-medium">Low Stock</span>
-            )}
-          </div>
-        </div>
-      </Link>
-    </div>
+      </article>
+    </TiltCard>
   );
 };
 

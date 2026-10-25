@@ -1,6 +1,12 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { CheckCircleIcon, XCircleIcon, BanknotesIcon } from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
 import SEO from '@/components/common/SEO';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import SectionHeading from '@/components/storefront/SectionHeading';
+import { Reveal } from '@/components/storefront/Reveal';
+import { SfLinkButton } from '@/components/storefront/SfButton';
+import { Accent, InfoCallout, InfoCta, InfoHero, InfoSection, InfoSteps } from '@/components/storefront/InfoPage';
 
 const eligibility = [
   { ok: true,  text: 'Unused, in original condition' },
@@ -26,68 +32,56 @@ const Returns: React.FC = () => (
       keywords="LaptopWorld returns, laptop refund India, return policy"
     />
 
-    <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-      <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8 text-center">
-        <h1 className="text-4xl font-bold sm:text-5xl mb-4">
-          Returns &{' '}
-          <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-            Refunds
-          </span>
-        </h1>
-        <p className="mt-4 text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-          Not satisfied? We offer a hassle-free 7-day return policy on most products.
-        </p>
-      </div>
-    </section>
+    <InfoHero
+      eyebrow="Returns"
+      title={
+        <>
+          Returns &amp; <Accent>Refunds</Accent>
+        </>
+      }
+      subtitle="Not satisfied? We offer a hassle-free 7-day return policy on most products."
+    />
 
-    <section className="bg-white py-16">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">How Returns Work</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {returnSteps.map((s) => (
-            <div key={s.step} className="card p-6">
-              <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-                <span className="text-blue-600 font-bold text-sm">{s.step}</span>
-              </div>
-              <h3 className="font-semibold text-gray-900 mb-2">{s.title}</h3>
-              <p className="text-sm text-gray-500 leading-relaxed">{s.desc}</p>
-            </div>
-          ))}
-        </div>
+    <InfoSection className="pt-4 sm:pt-6" labelledBy="returns-how">
+      <SectionHeading align="center" eyebrow="Process" title={<span id="returns-how">How Returns Work</span>} />
+      <div className="mt-12">
+        <InfoSteps steps={returnSteps} />
       </div>
-    </section>
+    </InfoSection>
 
-    <section className="bg-gray-50 py-16">
-      <div className="mx-auto max-w-2xl px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6 text-center">Return Eligibility</h2>
-        <div className="card p-6 space-y-3">
-          {eligibility.map((e) => (
-            <div key={e.text} className="flex items-center gap-3">
-              <span className={`text-lg ${e.ok ? 'text-green-500' : 'text-red-400'}`}>
-                {e.ok ? '✓' : '✕'}
-              </span>
-              <span className={`text-sm ${e.ok ? 'text-gray-700' : 'text-gray-400'}`}>{e.text}</span>
-            </div>
-          ))}
-        </div>
-        <div className="mt-6 bg-yellow-50 border border-yellow-100 rounded-xl p-5 text-sm text-yellow-800">
-          <strong>Refund Timeline:</strong> Once your return is approved, refunds take 5–7 business days to reflect in your account depending on your bank.
-        </div>
-      </div>
-    </section>
+    <InfoSection narrow className="pt-0 sm:pt-4" labelledBy="returns-eligibility">
+      <SectionHeading align="center" eyebrow="Eligibility" title={<span id="returns-eligibility">Return Eligibility</span>} />
+      <Reveal className="mt-10">
+        <GlassPanel className="p-6 sm:p-8">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {eligibility.map((e) => (
+              <li
+                key={e.text}
+                className={clsx(
+                  'flex items-start gap-3 rounded-sf p-3 text-sm ring-1 ring-inset',
+                  e.ok ? 'bg-sf-success/10 ring-sf-success/20' : 'bg-sf-danger/10 ring-sf-danger/20'
+                )}
+              >
+                {e.ok ? (
+                  <CheckCircleIcon className="h-5 w-5 flex-shrink-0 text-sf-success" aria-label="Eligible" />
+                ) : (
+                  <XCircleIcon className="h-5 w-5 flex-shrink-0 text-sf-danger" aria-label="Not eligible" />
+                )}
+                <span className="text-sf-ink">{e.text}</span>
+              </li>
+            ))}
+          </ul>
+        </GlassPanel>
+      </Reveal>
+      <InfoCallout tone="warning" icon={<BanknotesIcon aria-hidden="true" className="text-sf-warning" />} className="mt-6">
+        <strong>Refund Timeline:</strong> Once your return is approved, refunds take 5–7 business days to reflect in your
+        account depending on your bank.
+      </InfoCallout>
+    </InfoSection>
 
-    <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-14">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-        <h2 className="text-2xl font-bold text-white mb-3">Need Help With a Return?</h2>
-        <p className="text-blue-100 mb-6">Our support team will guide you through the entire process.</p>
-        <Link
-          to="/contact"
-          className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-lg inline-block"
-        >
-          Contact Support
-        </Link>
-      </div>
-    </section>
+    <InfoCta title="Need Help With a Return?" actions={<SfLinkButton to="/contact" size="lg">Contact Support</SfLinkButton>}>
+      Our support team will guide you through the entire process.
+    </InfoCta>
   </>
 );
 

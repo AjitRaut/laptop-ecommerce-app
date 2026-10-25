@@ -13,14 +13,14 @@ interface SEOProps {
 
 const SEO: React.FC<SEOProps> = ({
   title,
-  description = 'Premium laptops and accessories at LaptopShop. Find the perfect laptop for work, gaming, or personal use.',
+  description = 'Premium laptops and accessories at LaptopWorld. Find the perfect laptop for work, gaming, or personal use.',
   keywords = 'laptops, computers, gaming laptops, business laptops, accessories',
-  image = '/og-image.jpg',
+  image = '/laptopWorld_Logo.png',
   url = window.location.href,
   type = 'website',
   schema,
 }) => {
-  const fullTitle = `${title} | LaptopShop`;
+  const fullTitle = `${title} | LaptopWorld`;
 
   return (
     <Helmet>
@@ -34,7 +34,7 @@ const SEO: React.FC<SEOProps> = ({
       <meta property="og:image" content={image} />
       <meta property="og:url" content={url} />
       <meta property="og:type" content={type} />
-      <meta property="og:site_name" content="LaptopShop" />
+      <meta property="og:site_name" content="LaptopWorld" />
       
       {/* Twitter */}
       <meta name="twitter:card" content="summary_large_image" />

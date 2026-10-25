@@ -1,315 +1,500 @@
-import React, { useState, Fragment } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Dialog, Popover, Transition } from '@headlessui/react';
+import React, { Fragment, useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Dialog, Menu, Popover, Transition } from '@headlessui/react';
 import {
   Bars3Icon,
   XMarkIcon,
-  ShoppingCartIcon,
+  ShoppingBagIcon,
   HeartIcon,
   UserIcon,
   ChevronDownIcon,
+  MagnifyingGlassIcon,
+  ClipboardDocumentListIcon,
+  ArrowRightOnRectangleIcon,
+  ArrowRightIcon,
+  TruckIcon,
 } from '@heroicons/react/24/outline';
-import SearchBar from '../common/SearchBar';
-import Badge from '../common/Badge';
-import Button from '../common/Button';
+import { clsx } from 'clsx';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
 import { logout } from '@/store/slices/authSlice';
 import { useAppDispatch } from '@/hooks/useTypedSelector';
-import logo from "./../../../public/laptopWorld_Logo.png"
+import { useGetBrandsQuery, useGetCategoriesQuery } from '@/store/api/productsApi';
+import BrandLogo from '../storefront/BrandLogo';
+import CommandPalette from '../storefront/CommandPalette';
+import CssLaptop from '../storefront/CssLaptop';
+import { ThemeToggle } from '../storefront/theme';
+import { useCartFly } from '../storefront/CartFly';
+import { useScrolled } from '../storefront/hooks';
+import { categoryBlurb, categoryIcon } from '../storefront/categoryVisuals';
+import { sfButtonClasses } from '../storefront/SfButton';
+import { container } from '../storefront/utils';
+
+const navigation = [
+  { name: 'Laptops', href: '/products?category=laptop' },
+  { name: 'Accessories', href: '/products?category=accessories' },
+  { name: 'Support', href: '/help' },
+];
+
+const isMac = typeof navigator !== 'undefined' && /mac|iphone|ipad/i.test(navigator.platform);
+
+const iconButton =
+  'relative inline-flex h-10 w-10 items-center justify-center rounded-full text-sf-muted transition-colors hover:bg-sf-surface-2 hover:text-sf-ink';
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
   const { isAuthenticated, user } = useAuth();
   const { itemCount } = useCart();
+  const { registerTarget, bumpKey } = useCartFly();
+  const scrolled = useScrolled(12);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  const { data: categories } = useGetCategoriesQuery();
+  const { data: brands } = useGetBrandsQuery();
 
   const handleLogout = () => {
     dispatch(logout());
     navigate('/');
   };
 
-  const navigation = [
-    { name: 'Products', href: '/products' },
-    { name: 'Laptops', href: '/products?category=laptop' },
-    // { name: 'Accessories', href: '/products?category=accessory' },
-    // { name: 'Deals', href: '/products?ordering=-discount_percentage' },
-  ];
+  // Ctrl/Cmd + K opens the command palette from anywhere on the storefront.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  const isActive = (href: string) =>
+    href.includes('?') ? `${location.pathname}${location.search}` === href : location.pathname === href;
 
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40 backdrop-blur-lg bg-white/95">
-      <nav className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8" aria-label="Top">
-        <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center">
-            <Link to="/" className="flex items-center group">
-              <img 
-                src={logo} 
-                alt="LaptopWorld Logo" 
-                className="h-10 w-auto mr-3 group-hover:scale-105 transition-transform object-contain"
-              />
-          
-            </Link>
-          </div>
+    <header className="sticky top-0 z-40">
+      {/* Glass bar fades in and "shrinks" (scaleY) once the page scrolls: transform/opacity only. */}
+      <div
+        aria-hidden="true"
+        className={clsx(
+          'sf-glass absolute inset-0 origin-top border-x-0 border-t-0 transition-[opacity,transform] duration-500 ease-sf-out',
+          scrolled ? 'scale-y-[0.86] opacity-100' : 'opacity-0'
+        )}
+      />
+      <nav
+        aria-label="Primary"
+        className={clsx(
+          container,
+          'relative flex h-[72px] items-center gap-2 transition-transform duration-500 ease-sf-out sm:gap-4',
+          scrolled && '-translate-y-[5px]'
+        )}
+      >
+        <Link
+          to="/"
+          aria-label="LaptopWorld home"
+          className={clsx('mr-2 flex-shrink-0 rounded-full transition-transform duration-500 ease-sf-out', scrolled && 'scale-95')}
+        >
+          <BrandLogo />
+        </Link>
 
-          {/* Desktop Navigation */}
-          <div className="hidden lg:flex items-center space-x-8">
-            {navigation.map((item) => (
-              <Link
-                key={item.name}
-                to={item.href}
-                className="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium transition-colors relative group"
-              >
-                {item.name}
-                <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 group-hover:w-full transition-all duration-300" />
-              </Link>
-            ))}
-          </div>
-
-          {/* Search Bar - Desktop */}
-          <div className="hidden md:flex flex-1 max-w-lg mx-8">
-            <SearchBar className="w-full" />
-          </div>
-
-          {/* Right Side Actions */}
-          <div className="flex items-center space-x-4">
-            {isAuthenticated ? (
+        {/* Desktop navigation */}
+        <div className="hidden items-center gap-1 lg:flex">
+          <Popover>
+            {({ open, close }) => (
               <>
-                {/* Cart */}
-                <Link
-                  to="/cart"
-                  className="relative p-2 text-gray-600 hover:text-blue-600 transition-colors group"
-                >
-                  <ShoppingCartIcon className="h-6 w-6 group-hover:scale-110 transition-transform" />
-                  {itemCount > 0 && (
-                    <Badge
-                      variant="error"
-                      size="sm"
-                      className="absolute -top-1 -right-1 min-w-[20px] h-5 flex items-center justify-center text-xs rounded-full"
-                    >
-                      {itemCount}
-                    </Badge>
+                <Popover.Button
+                  className={clsx(
+                    'inline-flex items-center gap-1 rounded-full px-3.5 py-2 text-sm font-medium transition-colors',
+                    open ? 'bg-sf-surface-2 text-sf-ink' : 'text-sf-muted hover:text-sf-ink'
                   )}
-                </Link>
-
-                {/* Wishlist */}
-                <Link
-                  to="/wishlist"
-                  className="p-2 text-gray-600 hover:text-pink-600 transition-colors group"
                 >
-                  <HeartIcon className="h-6 w-6 group-hover:scale-110 transition-transform" />
-                </Link>
-
-                {/* Profile Dropdown */}
-                <Popover className="relative">
-                  <Popover.Button className="flex items-center text-gray-600 hover:text-blue-600 transition-colors group">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-sm font-medium">
-                          {user?.first_name?.charAt(0) || 'U'}
-                        </span>
+                  Shop
+                  <ChevronDownIcon className={clsx('h-4 w-4 transition-transform duration-300', open && 'rotate-180')} />
+                </Popover.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-200"
+                  enterFrom="opacity-0 -translate-y-2"
+                  enterTo="opacity-100 translate-y-0"
+                  leave="transition ease-in duration-150"
+                  leaveFrom="opacity-100 translate-y-0"
+                  leaveTo="opacity-0 -translate-y-2"
+                >
+                  <Popover.Panel className={clsx(container, 'absolute inset-x-0 top-full mt-1')}>
+                    <div className="sf-glass grid grid-cols-12 gap-6 rounded-sf-xl bg-sf-glass-strong p-6 shadow-sf-float">
+                      <div className="col-span-6">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-sf-subtle">Categories</p>
+                        <ul className="grid grid-cols-2 gap-2">
+                          {categories?.results?.map((category) => {
+                            const Icon = categoryIcon(category.name);
+                            return (
+                              <li key={category.id}>
+                                <Link
+                                  to={`/products?category=${category.id}`}
+                                  onClick={() => close()}
+                                  className="group flex gap-3 rounded-sf p-3 transition-colors hover:bg-sf-surface-2"
+                                >
+                                  <span className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-sf-sm bg-sf-gradient text-sf-on-accent shadow-sf-glow transition-transform duration-300 group-hover:-translate-y-0.5">
+                                    <Icon className="h-5 w-5" />
+                                  </span>
+                                  <span>
+                                    <span className="block text-sm font-semibold text-sf-ink">{category.name}</span>
+                                    <span className="mt-0.5 block text-xs leading-relaxed text-sf-subtle">
+                                      {categoryBlurb(category.name, category.description)}
+                                    </span>
+                                  </span>
+                                </Link>
+                              </li>
+                            );
+                          })}
+                        </ul>
                       </div>
-                      <span className="hidden sm:block text-sm font-medium">
-                        {user?.first_name || 'Profile'}
-                      </span>
-                      <ChevronDownIcon className="h-4 w-4 group-hover:rotate-180 transition-transform" />
-                    </div>
-                  </Popover.Button>
-
-                  <Transition
-                    as={Fragment}
-                    enter="transition ease-out duration-200"
-                    enterFrom="opacity-0 translate-y-1"
-                    enterTo="opacity-1 translate-y-0"
-                    leave="transition ease-in duration-150"
-                    leaveFrom="opacity-1 translate-y-0"
-                    leaveTo="opacity-0 translate-y-1"
-                  >
-                    <Popover.Panel className="absolute right-0 z-10 mt-2 w-56 bg-white rounded-xl shadow-lg ring-1 ring-gray-900/5 border border-gray-200">
-                      <div className="p-2">
-                        <div className="px-3 py-2 border-b border-gray-100">
-                          <p className="text-sm font-medium text-gray-900">
-                            {user?.first_name} {user?.last_name}
+                      <div className="col-span-2">
+                        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-sf-subtle">Brands</p>
+                        <ul className="space-y-1">
+                          {brands?.results?.map((brand) => (
+                            <li key={brand.id}>
+                              <Link
+                                to={`/products?brand=${brand.id}`}
+                                onClick={() => close()}
+                                className="block rounded-sf-sm px-3 py-1.5 text-sm text-sf-muted transition-colors hover:bg-sf-surface-2 hover:text-sf-ink"
+                              >
+                                {brand.name}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                      <Link
+                        to="/products"
+                        onClick={() => close()}
+                        className="group relative col-span-4 flex flex-col justify-between overflow-hidden rounded-sf-lg bg-sf-surface-2 p-5 ring-1 ring-sf-line"
+                      >
+                        <div className="absolute -right-10 -top-16 h-48 w-48 rounded-full bg-sf-gradient opacity-30 blur-3xl" />
+                        <CssLaptop size="sm" label="LaptopWorld" className="relative max-w-[220px] transition-transform duration-500 group-hover:-translate-y-1" />
+                        <div className="relative mt-4">
+                          <p className="font-display text-lg font-semibold text-sf-ink">Browse all products</p>
+                          <p className="mt-1 flex items-center gap-1.5 text-xs text-sf-subtle">
+                            <TruckIcon className="h-4 w-4" /> Free shipping over ₹10,000
                           </p>
-                          <p className="text-xs text-gray-500">{user?.email}</p>
+                          <span className="mt-3 inline-flex items-center gap-1 text-sm font-medium text-sf-accent">
+                            Shop now <ArrowRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                          </span>
                         </div>
-                        <Link
-                          to="/profile"
-                          className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                        >
-                          <UserIcon className="h-4 w-4 mr-2" />
-                          My Profile
-                        </Link>
-                        <Link
-                          to="/orders"
-                          className="flex items-center px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                        >
-                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                          </svg>
-                          My Orders
-                        </Link>
-                        <button
-                          onClick={handleLogout}
-                          className="flex items-center w-full px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
-                        >
-                          <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                          </svg>
-                          Sign Out
-                        </button>
-                      </div>
-                    </Popover.Panel>
-                  </Transition>
-                </Popover>
+                      </Link>
+                    </div>
+                  </Popover.Panel>
+                </Transition>
               </>
-            ) : (
-              <div className="flex items-center space-x-3">
-                <Link to="/login">
-                  <Button variant="ghost" size="sm">
-                    Sign In
-                  </Button>
-                </Link>
-                <Link to="/register">
-                  <Button size="sm" className="shadow-lg hover:shadow-xl">
-                    Sign Up
-                  </Button>
-                </Link>
-              </div>
             )}
+          </Popover>
 
-            {/* Mobile menu button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="lg:hidden p-2"
-              onClick={() => setMobileMenuOpen(true)}
+          {navigation.map((item) => (
+            <Link
+              key={item.name}
+              to={item.href}
+              aria-current={isActive(item.href) ? 'page' : undefined}
+              className={clsx(
+                'group relative rounded-full px-3.5 py-2 text-sm font-medium transition-colors',
+                isActive(item.href) ? 'text-sf-ink' : 'text-sf-muted hover:text-sf-ink'
+              )}
             >
-              <Bars3Icon className="h-6 w-6" />
-            </Button>
-          </div>
+              {item.name}
+              <span
+                aria-hidden="true"
+                className={clsx(
+                  'absolute inset-x-3.5 -bottom-0.5 h-px origin-left bg-sf-gradient transition-transform duration-300',
+                  isActive(item.href) ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'
+                )}
+              />
+            </Link>
+          ))}
         </div>
 
-        {/* Mobile Search Bar */}
-        <div className="md:hidden py-3 border-t border-gray-100">
-          <SearchBar />
+        {/* Search trigger (desktop) */}
+        <button
+          type="button"
+          onClick={() => setPaletteOpen(true)}
+          className="ml-auto hidden h-10 w-full max-w-xs items-center gap-3 rounded-full border border-sf-line-strong bg-sf-surface/60 pl-4 pr-2 text-sm text-sf-subtle transition-colors hover:border-sf-accent/50 hover:text-sf-muted md:flex"
+        >
+          <MagnifyingGlassIcon className="h-4 w-4" />
+          <span className="flex-1 text-left">Search laptops, accessories…</span>
+          <kbd className="rounded-md border border-sf-line-strong bg-sf-surface-2 px-1.5 py-0.5 font-body text-[11px] text-sf-subtle">
+            {isMac ? '⌘K' : 'Ctrl K'}
+          </kbd>
+        </button>
+
+        {/* Actions */}
+        <div className="ml-auto flex items-center gap-0.5 md:ml-0 sm:gap-1">
+          <button type="button" onClick={() => setPaletteOpen(true)} aria-label="Search" className={clsx(iconButton, 'md:hidden')}>
+            <MagnifyingGlassIcon className="h-5 w-5" />
+          </button>
+          <ThemeToggle />
+
+          {isAuthenticated ? (
+            <>
+              <Link to="/wishlist" aria-label="Wishlist" className={clsx(iconButton, 'hidden sm:inline-flex')}>
+                <HeartIcon className="h-5 w-5" />
+              </Link>
+              <Link
+                to="/cart"
+                ref={registerTarget}
+                aria-label={`Cart, ${itemCount} ${itemCount === 1 ? 'item' : 'items'}`}
+                className={iconButton}
+              >
+                <ShoppingBagIcon className="h-5 w-5" />
+                {itemCount > 0 && (
+                  <span
+                    key={bumpKey}
+                    className={clsx(
+                      'absolute -right-0.5 -top-0.5 flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-sf-gradient px-1 text-[11px] font-semibold text-sf-on-accent shadow-sf-glow',
+                      bumpKey > 0 && 'animate-sf-bounce'
+                    )}
+                  >
+                    {itemCount}
+                  </span>
+                )}
+              </Link>
+
+              <Menu as="div" className="relative ml-1 hidden lg:block">
+                <Menu.Button className="flex items-center gap-2 rounded-full py-1 pl-1 pr-2.5 text-sm text-sf-muted transition-colors hover:bg-sf-surface-2 hover:text-sf-ink">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-full bg-sf-gradient text-sm font-semibold text-sf-on-accent">
+                    {user?.first_name?.charAt(0) || 'U'}
+                  </span>
+                  <span className="max-w-[7rem] truncate font-medium">{user?.first_name || 'Profile'}</span>
+                  <ChevronDownIcon className="h-4 w-4" />
+                </Menu.Button>
+                <Transition
+                  as={Fragment}
+                  enter="transition ease-out duration-200"
+                  enterFrom="opacity-0 translate-y-1 scale-95"
+                  enterTo="opacity-100 translate-y-0 scale-100"
+                  leave="transition ease-in duration-150"
+                  leaveFrom="opacity-100 scale-100"
+                  leaveTo="opacity-0 scale-95"
+                >
+                  <Menu.Items className="sf-glass absolute right-0 mt-3 w-64 origin-top-right rounded-sf-lg bg-sf-glass-strong p-2 shadow-sf-float focus:outline-none">
+                    <div className="border-b border-sf-line px-3 pb-3 pt-2">
+                      <p className="truncate text-sm font-semibold text-sf-ink">
+                        {user?.first_name} {user?.last_name}
+                      </p>
+                      <p className="truncate text-xs text-sf-subtle">{user?.email}</p>
+                    </div>
+                    <div className="pt-2">
+                      {[
+                        { label: 'My Profile', href: '/profile', icon: UserIcon },
+                        { label: 'My Orders', href: '/orders', icon: ClipboardDocumentListIcon },
+                        { label: 'Wishlist', href: '/wishlist', icon: HeartIcon },
+                      ].map((item) => (
+                        <Menu.Item key={item.href}>
+                          {({ active }) => (
+                            <Link
+                              to={item.href}
+                              className={clsx(
+                                'flex items-center gap-3 rounded-sf-sm px-3 py-2 text-sm transition-colors',
+                                active ? 'bg-sf-surface-2 text-sf-ink' : 'text-sf-muted'
+                              )}
+                            >
+                              <item.icon className="h-4 w-4" />
+                              {item.label}
+                            </Link>
+                          )}
+                        </Menu.Item>
+                      ))}
+                      <Menu.Item>
+                        {({ active }) => (
+                          <button
+                            type="button"
+                            onClick={handleLogout}
+                            className={clsx(
+                              'flex w-full items-center gap-3 rounded-sf-sm px-3 py-2 text-sm transition-colors',
+                              active ? 'bg-sf-danger/10 text-sf-danger' : 'text-sf-muted'
+                            )}
+                          >
+                            <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                            Sign Out
+                          </button>
+                        )}
+                      </Menu.Item>
+                    </div>
+                  </Menu.Items>
+                </Transition>
+              </Menu>
+            </>
+          ) : (
+            <div className="ml-1 hidden items-center gap-1 sm:flex">
+              <Link to="/login" className={sfButtonClasses({ variant: 'ghost', size: 'sm' })}>
+                Sign In
+              </Link>
+              <Link to="/register" className={sfButtonClasses({ variant: 'primary', size: 'sm' })}>
+                Sign Up
+              </Link>
+            </div>
+          )}
+
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(true)}
+            aria-label="Open menu"
+            className={clsx(iconButton, 'lg:hidden')}
+          >
+            <Bars3Icon className="h-6 w-6" />
+          </button>
         </div>
       </nav>
 
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+
       {/* Mobile menu */}
-      <Dialog as="div" className="lg:hidden" open={mobileMenuOpen} onClose={setMobileMenuOpen}>
-        <div className="fixed inset-0 z-50" />
-        <Dialog.Panel className="fixed inset-y-0 right-0 z-50 w-full overflow-y-auto bg-white px-6 py-6 sm:max-w-sm sm:ring-1 sm:ring-gray-900/10">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="-m-1.5 p-1.5 flex items-center">
-              <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg p-1.5 mr-2">
-                <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M20 6H4c-1.11 0-2 .89-2 2v8c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2zm0 10H4V8h16v8z"/>
-                </svg>
+      <Transition.Root show={mobileMenuOpen} as={Fragment}>
+        <Dialog as="div" className="relative z-50 lg:hidden" onClose={setMobileMenuOpen}>
+          <Transition.Child
+            as={Fragment}
+            enter="ease-out duration-300"
+            enterFrom="opacity-0"
+            enterTo="opacity-100"
+            leave="ease-in duration-200"
+            leaveFrom="opacity-100"
+            leaveTo="opacity-0"
+          >
+            <div className="fixed inset-0 bg-sf-bg/70 backdrop-blur-sm" />
+          </Transition.Child>
+          <Transition.Child
+            as={Fragment}
+            enter="transform transition ease-sf-out duration-500"
+            enterFrom="translate-x-full"
+            enterTo="translate-x-0"
+            leave="transform transition ease-in duration-200"
+            leaveFrom="translate-x-0"
+            leaveTo="translate-x-full"
+          >
+            <Dialog.Panel className="sf-glass fixed inset-y-0 right-0 flex w-full flex-col overflow-y-auto border-y-0 border-r-0 bg-sf-glass-strong px-4 py-4 sm:max-w-sm sm:px-6">
+              <div className="flex items-center justify-between">
+                <Link to="/" onClick={() => setMobileMenuOpen(false)} aria-label="LaptopWorld home">
+                  <BrandLogo />
+                </Link>
+                <button type="button" className={iconButton} onClick={() => setMobileMenuOpen(false)} aria-label="Close menu">
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
               </div>
-              <span className="text-lg font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                LaptopWorld
-              </span>
-            </Link>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="p-2"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <XMarkIcon className="h-6 w-6" />
-            </Button>
-          </div>
-          
-          <div className="mt-6 flow-root">
-            <div className="-my-6 divide-y divide-gray-500/10">
-              <div className="space-y-2 py-6">
-                {navigation.map((item) => (
-                  <Link
-                    key={item.name}
-                    to={item.href}
-                    className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {item.name}
-                  </Link>
-                ))}
+              <Dialog.Title className="sr-only">Menu</Dialog.Title>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  setPaletteOpen(true);
+                }}
+                className="mt-6 flex h-12 w-full items-center gap-3 rounded-full border border-sf-line-strong bg-sf-surface/60 px-4 text-sm text-sf-subtle"
+              >
+                <MagnifyingGlassIcon className="h-5 w-5" />
+                Search laptops, accessories…
+              </button>
+
+              <div className="mt-6">
+                <p className="px-3 text-xs font-semibold uppercase tracking-[0.2em] text-sf-subtle">Shop</p>
+                <ul className="mt-2 space-y-1">
+                  <li>
+                    <Link
+                      to="/products"
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block rounded-sf px-3 py-2.5 text-base font-semibold text-sf-ink hover:bg-sf-surface-2"
+                    >
+                      All Products
+                    </Link>
+                  </li>
+                  {categories?.results?.map((category) => {
+                    const Icon = categoryIcon(category.name);
+                    return (
+                      <li key={category.id}>
+                        <Link
+                          to={`/products?category=${category.id}`}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-3 rounded-sf px-3 py-2.5 text-base font-medium text-sf-muted hover:bg-sf-surface-2 hover:text-sf-ink"
+                        >
+                          <Icon className="h-5 w-5 text-sf-accent" />
+                          {category.name}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                  {/* The category list above already covers the Laptops/Accessories shortcuts. */}
+                  {navigation
+                    .filter((item) => !item.href.startsWith('/products'))
+                    .map((item) => (
+                    <li key={item.name}>
+                      <Link
+                        to={item.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="block rounded-sf px-3 py-2.5 text-base font-medium text-sf-muted hover:bg-sf-surface-2 hover:text-sf-ink"
+                      >
+                        {item.name}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              
-              <div className="py-6">
+
+              <div className="mt-6 border-t border-sf-line pt-6">
                 {isAuthenticated ? (
-                  <div className="space-y-2">
-                    <Link
-                      to="/cart"
-                      className="-mx-3 flex items-center rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <ShoppingCartIcon className="h-5 w-5 mr-3" />
-                      Cart ({itemCount})
-                    </Link>
-                    <Link
-                      to="/wishlist"
-                      className="-mx-3 flex items-center rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <HeartIcon className="h-5 w-5 mr-3" />
-                      Wishlist
-                    </Link>
-                    <Link
-                      to="/profile"
-                      className="-mx-3 flex items-center rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <UserIcon className="h-5 w-5 mr-3" />
-                      Profile
-                    </Link>
-                    <Link
-                      to="/orders"
-                      className="-mx-3 flex items-center rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                      </svg>
-                      Orders
-                    </Link>
-                    <button
-                      onClick={() => {
-                        handleLogout();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="-mx-3 flex items-center rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50 w-full text-left"
-                    >
-                      <svg className="h-5 w-5 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      Sign Out
-                    </button>
-                  </div>
+                  <ul className="space-y-1">
+                    {[
+                      { label: `Cart (${itemCount})`, href: '/cart', icon: ShoppingBagIcon },
+                      { label: 'Wishlist', href: '/wishlist', icon: HeartIcon },
+                      { label: 'Profile', href: '/profile', icon: UserIcon },
+                      { label: 'Orders', href: '/orders', icon: ClipboardDocumentListIcon },
+                    ].map((item) => (
+                      <li key={item.href}>
+                        <Link
+                          to={item.href}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-3 rounded-sf px-3 py-2.5 text-base font-medium text-sf-ink hover:bg-sf-surface-2"
+                        >
+                          <item.icon className="h-5 w-5 text-sf-subtle" />
+                          {item.label}
+                        </Link>
+                      </li>
+                    ))}
+                    <li>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          handleLogout();
+                          setMobileMenuOpen(false);
+                        }}
+                        className="flex w-full items-center gap-3 rounded-sf px-3 py-2.5 text-left text-base font-medium text-sf-danger hover:bg-sf-danger/10"
+                      >
+                        <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                        Sign Out
+                      </button>
+                    </li>
+                  </ul>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-3">
                     <Link
                       to="/login"
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 hover:bg-gray-50"
                       onClick={() => setMobileMenuOpen(false)}
+                      className={sfButtonClasses({ variant: 'outline', size: 'lg', fullWidth: true })}
                     >
                       Sign In
                     </Link>
                     <Link
                       to="/register"
-                      className="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-blue-600 hover:bg-gray-50"
                       onClick={() => setMobileMenuOpen(false)}
+                      className={sfButtonClasses({ variant: 'primary', size: 'lg', fullWidth: true })}
                     >
                       Sign Up
                     </Link>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        </Dialog.Panel>
-      </Dialog>
+            </Dialog.Panel>
+          </Transition.Child>
+        </Dialog>
+      </Transition.Root>
     </header>
   );
 };

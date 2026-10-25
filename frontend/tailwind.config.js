@@ -1,5 +1,14 @@
+import forms from '@tailwindcss/forms';
+import typography from '@tailwindcss/typography';
+
+// Storefront tokens resolve to CSS variables defined in src/index.css.
+// (light values on :root, dark values on .dark).
+const sfColor = (name) => `rgb(var(--sf-${name}) / <alpha-value>)`;
+
 /** @type {import('tailwindcss').Config} */
 export default {
+  // The storefront toggles `.dark` on <html>; admin/vendor pages never set it.
+  darkMode: 'class',
   content: [
     "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
@@ -7,6 +16,32 @@ export default {
   theme: {
     extend: {
       colors: {
+        sf: {
+          bg: sfColor('bg'),
+          elevated: sfColor('bg-elevated'),
+          surface: sfColor('surface'),
+          'surface-2': sfColor('surface-2'),
+          'surface-3': sfColor('surface-3'),
+          ink: sfColor('ink'),
+          muted: sfColor('muted'),
+          subtle: sfColor('subtle'),
+          accent: sfColor('accent'),
+          'accent-strong': sfColor('accent-strong'),
+          violet: sfColor('violet'),
+          'violet-strong': sfColor('violet-strong'),
+          cyan: sfColor('cyan'),
+          success: sfColor('success'),
+          warning: sfColor('warning'),
+          danger: sfColor('danger'),
+          'on-accent': sfColor('on-accent'),
+          device: sfColor('device'),
+          'alu-from': sfColor('alu-from'),
+          'alu-to': sfColor('alu-to'),
+          line: 'var(--sf-line)',
+          'line-strong': 'var(--sf-line-strong)',
+          glass: 'var(--sf-glass)',
+          'glass-strong': 'var(--sf-glass-strong)',
+        },
         primary: {
           50: '#eff6ff',
           100: '#dbeafe',
@@ -58,6 +93,8 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'Consolas', 'monospace'],
+        display: ['"Space Grotesk"', 'Inter', 'system-ui', 'sans-serif'],
+        body: ['Inter', 'system-ui', 'sans-serif'],
       },
       animation: {
         'fade-in': 'fadeIn 0.5s ease-in-out',
@@ -69,6 +106,11 @@ export default {
         'pulse-soft': 'pulseSoft 2s infinite',
         'float': 'float 3s ease-in-out infinite',
         'glow': 'glow 2s ease-in-out infinite alternate',
+        'sf-shimmer': 'sf-shimmer 1.6s ease-in-out infinite',
+        'sf-marquee': 'sf-marquee 40s linear infinite',
+        'sf-drift': 'sf-drift 18s ease-in-out infinite',
+        'sf-float': 'sf-float 6s ease-in-out infinite',
+        'sf-bounce': 'sf-bounce 0.5s ease-out',
       },
       keyframes: {
         fadeIn: {
@@ -107,6 +149,27 @@ export default {
           '0%': { boxShadow: '0 0 5px rgba(59, 130, 246, 0.5)' },
           '100%': { boxShadow: '0 0 20px rgba(59, 130, 246, 0.8)' },
         },
+        'sf-shimmer': {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(100%)' },
+        },
+        'sf-marquee': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
+        'sf-drift': {
+          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)' },
+          '50%': { transform: 'translate3d(2%, -3%, 0) scale(1.06)' },
+        },
+        'sf-float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-8px)' },
+        },
+        'sf-bounce': {
+          '0%, 100%': { transform: 'scale(1)' },
+          '30%': { transform: 'scale(1.45)' },
+          '60%': { transform: 'scale(0.9)' },
+        },
       },
       backdropBlur: {
         xs: '2px',
@@ -114,12 +177,17 @@ export default {
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
         'gradient-conic': 'conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))',
+        'sf-gradient': 'linear-gradient(135deg, rgb(var(--sf-accent-strong)) 0%, rgb(var(--sf-violet-strong)) 100%)',
+        'sf-plate': 'radial-gradient(120% 90% at 50% 20%, rgb(var(--sf-plate-from)) 0%, rgb(var(--sf-plate-to)) 100%)',
       },
       boxShadow: {
         'soft': '0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04)',
         'soft-lg': '0 10px 40px -12px rgba(0, 0, 0, 0.1)',
         'glow': '0 0 20px rgba(59, 130, 246, 0.3)',
         'glow-lg': '0 0 40px rgba(59, 130, 246, 0.4)',
+        'sf-card': 'var(--sf-shadow-card)',
+        'sf-float': 'var(--sf-shadow-float)',
+        'sf-glow': 'var(--sf-shadow-glow)',
       },
       spacing: {
         '18': '4.5rem',
@@ -128,6 +196,13 @@ export default {
       borderRadius: {
         '4xl': '2rem',
         '5xl': '2.5rem',
+        'sf-sm': 'var(--sf-radius-sm)',
+        'sf': 'var(--sf-radius)',
+        'sf-lg': 'var(--sf-radius-lg)',
+        'sf-xl': 'var(--sf-radius-xl)',
+      },
+      transitionTimingFunction: {
+        'sf-out': 'cubic-bezier(0.22, 1, 0.36, 1)',
       },
       zIndex: {
         '60': '60',
@@ -138,5 +213,10 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    // `class` strategy: only elements that opt in with form-* classes are reset,
+    // so existing admin/vendor form controls keep their current look.
+    forms({ strategy: 'class' }),
+    typography,
+  ],
 }

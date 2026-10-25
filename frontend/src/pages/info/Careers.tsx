@@ -1,6 +1,25 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
+import {
+  HomeModernIcon,
+  HeartIcon,
+  BookOpenIcon,
+  ClockIcon,
+  PaperAirplaneIcon,
+  ComputerDesktopIcon,
+  ChevronDownIcon,
+  MapPinIcon,
+  BriefcaseIcon,
+} from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
 import SEO from '@/components/common/SEO';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import SectionHeading from '@/components/storefront/SectionHeading';
+import StatusPill from '@/components/storefront/StatusPill';
+import { ExtrudedCard } from '@/components/storefront/Extruded';
+import { RevealGroup, RevealItem } from '@/components/storefront/Reveal';
+import { sfButtonClasses } from '@/components/storefront/SfButton';
+import { Accent, InfoCta, InfoHero, InfoSection, slugify } from '@/components/storefront/InfoPage';
 
 const openings = [
   {
@@ -46,12 +65,12 @@ const openings = [
 ];
 
 const perks = [
-  { label: 'Remote-Friendly', icon: '🏠' },
-  { label: 'Health Insurance', icon: '🏥' },
-  { label: 'Learning Budget', icon: '📚' },
-  { label: 'Flexible Hours', icon: '⏰' },
-  { label: 'Team Retreats', icon: '✈️' },
-  { label: 'Device Allowance', icon: '💻' },
+  { label: 'Remote-Friendly', icon: HomeModernIcon },
+  { label: 'Health Insurance', icon: HeartIcon },
+  { label: 'Learning Budget', icon: BookOpenIcon },
+  { label: 'Flexible Hours', icon: ClockIcon },
+  { label: 'Team Retreats', icon: PaperAirplaneIcon },
+  { label: 'Device Allowance', icon: ComputerDesktopIcon },
 ];
 
 const Careers: React.FC = () => {
@@ -65,109 +84,130 @@ const Careers: React.FC = () => {
         keywords="LaptopWorld careers, jobs Satara, tech jobs Maharashtra, e-commerce jobs India"
       />
 
-      {/* Hero */}
-      <section className="bg-gradient-to-br from-blue-600 via-blue-700 to-purple-700 text-white">
-        <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8 text-center">
-          <h1 className="text-4xl font-bold sm:text-5xl mb-4">
-            Work at{' '}
-            <span className="bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
-              LaptopWorld
-            </span>
-          </h1>
-          <p className="mt-4 text-xl text-blue-100 max-w-2xl mx-auto leading-relaxed">
-            We're a small, fast-moving team building India's most trusted laptop marketplace.
-            If you care about craft, customers, and impact — you'll fit right in.
-          </p>
-        </div>
-      </section>
+      <InfoHero
+        eyebrow="Careers"
+        title={
+          <>
+            Work at <Accent>LaptopWorld</Accent>
+          </>
+        }
+        subtitle="We're a small, fast-moving team building India's most trusted laptop marketplace. If you care about craft, customers, and impact — you'll fit right in."
+      />
 
       {/* Perks */}
-      <section className="bg-white py-14">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-900 text-center mb-10">Why Join Us?</h2>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
-            {perks.map((perk) => (
-              <div key={perk.label} className="card p-5 text-center">
-                <div className="text-3xl mb-2">{perk.icon}</div>
-                <p className="text-sm font-medium text-gray-700">{perk.label}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      <InfoSection className="pt-4 sm:pt-6" labelledBy="careers-perks">
+        <SectionHeading align="center" eyebrow="Perks" title={<span id="careers-perks">Why Join Us?</span>} />
+        <RevealGroup as="ul" className="mt-12 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-6">
+          {perks.map((perk) => (
+            <RevealItem as="li" key={perk.label} className="h-full">
+              <ExtrudedCard faceClassName="flex flex-col items-center p-5 text-center">
+                <span className="flex h-12 w-12 items-center justify-center rounded-sf bg-sf-gradient text-sf-on-accent shadow-sf-glow transition-transform duration-500 group-hover:-translate-y-0.5">
+                  <perk.icon aria-hidden="true" className="h-6 w-6" />
+                </span>
+                <p className="mt-3 text-sm font-medium text-sf-ink">{perk.label}</p>
+              </ExtrudedCard>
+            </RevealItem>
+          ))}
+        </RevealGroup>
+      </InfoSection>
 
       {/* Open Roles */}
-      <section className="bg-gray-50 py-14">
-        <div className="mx-auto max-w-4xl px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Open Positions</h2>
-          <p className="text-gray-500 mb-8">
-            Don't see a role that fits? Email us at{' '}
-            <a href="mailto:sagarcomputersatara@gmail.com" className="text-blue-600 hover:underline">
-              sagarcomputersatara@gmail.com
-            </a>{' '}
-            with your resume.
-          </p>
+      <InfoSection narrow className="pt-0 sm:pt-4" labelledBy="careers-openings">
+        <SectionHeading
+          eyebrow="Open roles"
+          title={<span id="careers-openings">Open Positions</span>}
+          description={
+            <>
+              Don't see a role that fits? Email us at{' '}
+              <a href="mailto:sagarcomputersatara@gmail.com" className="break-all font-medium text-sf-accent hover:underline sm:break-normal">
+                sagarcomputersatara@gmail.com
+              </a>{' '}
+              with your resume.
+            </>
+          }
+        />
 
-          <div className="space-y-4">
-            {openings.map((job, idx) => (
-              <div key={job.title} className="card overflow-hidden">
-                <button
-                  className="w-full text-left px-6 py-5 flex items-center justify-between"
-                  onClick={() => setOpenJob(openJob === idx ? null : idx)}
-                >
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{job.title}</h3>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <span className="text-xs bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full">
-                        {job.department}
-                      </span>
-                      <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
-                        {job.type}
-                      </span>
-                      <span className="text-xs bg-purple-50 text-purple-700 px-2 py-0.5 rounded-full">
-                        {job.location}
-                      </span>
-                    </div>
-                  </div>
-                  <svg
-                    className={`h-5 w-5 text-gray-400 transition-transform ${openJob === idx ? 'rotate-180' : ''}`}
-                    fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                  >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openJob === idx && (
-                  <div className="px-6 pb-6 border-t border-gray-100">
-                    <p className="text-gray-600 mt-4 leading-relaxed">{job.description}</p>
-                    <a
-                      href={`mailto:sagarcomputersatara@gmail.com?subject=Application for ${job.title}`}
-                      className="btn-primary inline-flex mt-4 text-sm"
+        <RevealGroup as="ul" className="mt-10 space-y-4">
+          {openings.map((job, idx) => {
+            const open = openJob === idx;
+            const panelId = `job-${slugify(job.title)}`;
+            return (
+              <RevealItem as="li" key={job.title}>
+                <GlassPanel padded={false} className={clsx('overflow-hidden transition-colors', open && 'border-sf-accent/40')}>
+                  <h3>
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      aria-controls={panelId}
+                      onClick={() => setOpenJob(open ? null : idx)}
+                      className="flex w-full items-center justify-between gap-4 px-5 py-5 text-left sm:px-6"
                     >
-                      Apply for this Role
-                    </a>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+                      <span>
+                        <span className="block font-display text-lg font-semibold text-sf-ink">{job.title}</span>
+                        <span className="mt-2 flex flex-wrap gap-2">
+                          <StatusPill tone="accent">
+                            <BriefcaseIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                            {job.department}
+                          </StatusPill>
+                          <StatusPill tone="neutral">{job.type}</StatusPill>
+                          <StatusPill tone="violet">
+                            <MapPinIcon aria-hidden="true" className="h-3.5 w-3.5" />
+                            {job.location}
+                          </StatusPill>
+                        </span>
+                      </span>
+                      <span
+                        className={clsx(
+                          'flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-sf-surface-2 text-sf-muted ring-1 ring-sf-line transition-transform duration-300',
+                          open && 'rotate-180 text-sf-accent'
+                        )}
+                      >
+                        <ChevronDownIcon aria-hidden="true" className="h-5 w-5" />
+                      </span>
+                    </button>
+                  </h3>
+                  <AnimatePresence initial={false}>
+                    {open && (
+                      <motion.div
+                        id={panelId}
+                        role="region"
+                        aria-label={job.title}
+                        initial={{ opacity: 0, y: -6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.25 }}
+                        className="border-t border-sf-line px-5 pb-6 sm:px-6"
+                      >
+                        <p className="mt-4 leading-relaxed text-sf-muted">{job.description}</p>
+                        <a
+                          href={`mailto:sagarcomputersatara@gmail.com?subject=Application for ${job.title}`}
+                          className={sfButtonClasses({ variant: 'primary', size: 'sm', className: 'mt-5' })}
+                        >
+                          Apply for this Role
+                        </a>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </GlassPanel>
+              </RevealItem>
+            );
+          })}
+        </RevealGroup>
+      </InfoSection>
 
-      {/* CTA */}
-      <section className="bg-gradient-to-r from-blue-600 to-purple-600 py-14">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8 text-center">
-          <h2 className="text-2xl font-bold text-white mb-3">Don't See the Right Role?</h2>
-          <p className="text-blue-100 mb-6">
-            We're always looking for talented people. Send us your profile and we'll be in touch.
-          </p>
+      <InfoCta
+        title="Don't See the Right Role?"
+        actions={
           <a
             href="mailto:sagarcomputersatara@gmail.com?subject=Open Application – LaptopWorld"
-            className="px-8 py-3 bg-white text-blue-600 font-semibold rounded-lg hover:bg-blue-50 transition-colors shadow-lg inline-block"
+            className={sfButtonClasses({ variant: 'primary', size: 'lg' })}
           >
             Send Open Application
           </a>
-        </div>
-      </section>
+        }
+      >
+        We're always looking for talented people. Send us your profile and we'll be in touch.
+      </InfoCta>
     </>
   );
 };

@@ -1,16 +1,14 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import {
-  PaymentElement,
-  useStripe,
-  useElements,
-} from '@stripe/react-stripe-js';
+import { PaymentElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import { toast } from 'react-hot-toast';
 import { motion } from 'framer-motion';
 import { ArrowLeftIcon, LockClosedIcon } from '@heroicons/react/24/outline';
-import Button from '@/components/common/Button';
-import { formatPrice } from '@/utils/formatters';
 import { useConfirmPaymentMutation } from '@/store/api/paymentsApi';
+import AnimatedPrice from '@/components/storefront/AnimatedPrice';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import { SfButton } from '@/components/storefront/SfButton';
+import { apiErrorMessage } from '@/components/storefront/utils';
 
 interface StripePaymentFormProps {
   clientSecret: string;
@@ -19,13 +17,7 @@ interface StripePaymentFormProps {
   onCancel: () => void;
 }
 
-const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
-  clientSecret,
-  orderId,
-  amount,
-  onCancel,
-}) => {
-    console.log("orderId",amount)
+const StripePaymentForm: React.FC<StripePaymentFormProps> = ({ orderId, amount, onCancel }) => {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
@@ -63,78 +55,64 @@ const StripePaymentForm: React.FC<StripePaymentFormProps> = ({
         toast.success('Payment successful!');
         navigate('/payment/success', { state: { orderId } });
       }
-    } catch (err: any) {
-      toast.error(err?.data?.message || 'Payment verification failed');
+    } catch (err) {
+      toast.error(apiErrorMessage(err, 'Payment verification failed'));
       setIsProcessing(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-white rounded-2xl shadow-lg border border-gray-200 p-8"
-    >
-      <div className="mb-6">
+    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+      <GlassPanel glow className="shadow-sf-float sm:p-8">
         <button
           type="button"
           onClick={onCancel}
-          className="flex items-center text-sm text-gray-600 hover:text-gray-900 mb-4"
+          className="inline-flex items-center gap-2 text-sm font-medium text-sf-muted transition-colors hover:text-sf-ink"
         >
-          <ArrowLeftIcon className="h-4 w-4 mr-2" />
+          <ArrowLeftIcon className="h-4 w-4" />
           Back to checkout
         </button>
-        <h2 className="text-2xl font-bold text-gray-900">Complete Payment</h2>
-        <p className="mt-2 text-sm text-gray-600">
-          Order ID: <span className="font-medium">{orderId}</span>
+
+        <h1 className="mt-5 font-display text-3xl font-semibold tracking-tight text-sf-ink">Complete Payment</h1>
+        <p className="mt-2 text-sm text-sf-muted">
+          Order ID: <span className="font-mono font-medium text-sf-ink">{orderId}</span>
         </p>
-      </div>
 
-      <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-gray-700">Amount to pay:</span>
-          <span className="text-2xl font-bold text-blue-600">
-            {formatPrice(amount.toString())}
-          </span>
+        <div className="mt-6 flex items-center justify-between rounded-sf-lg bg-sf-accent/10 p-4 ring-1 ring-inset ring-sf-accent/25">
+          <span className="text-sm font-medium text-sf-muted">Amount to pay</span>
+          <AnimatedPrice value={amount} countUpOnMount className="font-display text-2xl font-semibold text-sf-ink" />
         </div>
-      </div>
 
-      <form onSubmit={handleSubmit}>
-        <div className="mb-6">
+        <form onSubmit={handleSubmit} className="mt-6">
           <PaymentElement
             options={{
               layout: 'tabs',
             }}
           />
-        </div>
 
-        <div className="space-y-3">
-          <Button
-            type="submit"
-            loading={isProcessing}
-            disabled={!stripe || isProcessing}
-            size="lg"
-            fullWidth
-            leftIcon={<LockClosedIcon className="h-5 w-5" />}
-          >
-            {isProcessing ? 'Processing...' : 'Pay Now'}
-          </Button>
+          <div className="mt-8 space-y-3">
+            <SfButton
+              type="submit"
+              loading={isProcessing}
+              disabled={!stripe || isProcessing}
+              size="lg"
+              fullWidth
+              leftIcon={<LockClosedIcon className="h-5 w-5" />}
+            >
+              {isProcessing ? 'Processing...' : 'Pay Now'}
+            </SfButton>
 
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={isProcessing}
-            className="w-full px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        </div>
+            <SfButton type="button" variant="outline" onClick={onCancel} disabled={isProcessing} fullWidth>
+              Cancel
+            </SfButton>
+          </div>
 
-        <div className="mt-6 flex items-center justify-center text-xs text-gray-500">
-          <LockClosedIcon className="h-4 w-4 mr-1" />
-          <span>Payments are secure and encrypted</span>
-        </div>
-      </form>
+          <p className="mt-6 flex items-center justify-center gap-1.5 text-xs text-sf-subtle">
+            <LockClosedIcon className="h-4 w-4" />
+            Payments are secure and encrypted
+          </p>
+        </form>
+      </GlassPanel>
     </motion.div>
   );
 };

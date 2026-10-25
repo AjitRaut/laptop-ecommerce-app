@@ -1,13 +1,34 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import { toast } from 'react-hot-toast';
-import { TrashIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
+import { TrashIcon, LockClosedIcon, ShieldCheckIcon, ArrowLeftIcon, TruckIcon } from '@heroicons/react/24/outline';
+import { clsx } from 'clsx';
 import { useGetCartQuery, useUpdateCartItemMutation, useRemoveFromCartMutation } from '@/store/api/ordersApi';
 import { formatPrice } from '@/utils/formatters';
-import LoadingSpinner from '@/components/common/LoadingSpinner';
 import EmptyState from '@/components/common/EmptyState';
-import Button from '@/components/common/Button';
+import QuantitySelector from '@/components/common/QuantitySelector';
+import SEO from '@/components/common/SEO';
+import AnimatedPrice from '@/components/storefront/AnimatedPrice';
+import CheckoutStepper from '@/components/storefront/CheckoutStepper';
+import GlassPanel from '@/components/storefront/GlassPanel';
+import ProductImage from '@/components/storefront/ProductImage';
+import { SfLinkButton } from '@/components/storefront/SfButton';
+import { RowSkeleton, Skeleton } from '@/components/storefront/Skeleton';
+import { container, toNumber } from '@/components/storefront/utils';
+
+const FREE_SHIPPING_THRESHOLD = 10000;
+
+export const TrustBadges: React.FC<{ className?: string }> = ({ className }) => (
+  <div className={clsx('flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-xs text-sf-subtle', className)}>
+    <span className="inline-flex items-center gap-1.5">
+      <LockClosedIcon className="h-4 w-4" /> Secure checkout
+    </span>
+    <span className="inline-flex items-center gap-1.5">
+      <ShieldCheckIcon className="h-4 w-4" /> SSL encrypted
+    </span>
+  </div>
+);
 
 const Cart: React.FC = () => {
   const { data: cart, isLoading } = useGetCartQuery();
@@ -41,218 +62,198 @@ const Cart: React.FC = () => {
 
   const subtotal = calculateSubtotal();
   const tax = subtotal * 0.18; // 18% tax
-  const shipping = subtotal > 10000 ? 0 : 100; // Free shipping over ₹10,000
+  const shipping = subtotal > FREE_SHIPPING_THRESHOLD ? 0 : 100; // Free shipping over ₹10,000
   const total = subtotal + tax + shipping;
+  const shippingProgress = Math.min(1, subtotal / FREE_SHIPPING_THRESHOLD);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <LoadingSpinner size="lg" />
+      <div className={clsx(container, 'pt-10')}>
+        <Skeleton className="mx-auto h-10 w-full max-w-xl rounded-full" />
+        <div className="mt-12 grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="lg:col-span-8">
+            <RowSkeleton rows={3} />
+          </div>
+          <Skeleton className="h-80 rounded-sf-lg lg:col-span-4" />
+        </div>
       </div>
     );
   }
 
   if (!cart?.items || cart.items.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <EmptyState
-            title="Your cart is empty"
-            description="Looks like you haven't added any items to your cart yet."
-            icon={
-              <svg className="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5-6m0 0h15.5m0 0L21 5H5.4" />
-              </svg>
-            }
-            action={
-              <Link to="/products">
-                <Button size="lg">
-                  Continue Shopping
-                </Button>
-              </Link>
-            }
-          />
-        </div>
+      <div className={clsx(container, 'flex min-h-[70vh] items-center justify-center')}>
+        <SEO title="Your Cart" />
+        <EmptyState
+          headingLevel="h1"
+          illustration="cart"
+          title="Your cart is empty"
+          description="Looks like you haven't added any items to your cart yet."
+          action={
+            <SfLinkButton to="/products" size="lg">
+              Continue Shopping
+            </SfLinkButton>
+          }
+        />
       </div>
     );
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900">Shopping Cart</h1>
-            <p className="mt-2 text-sm text-gray-600">
-              {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
-            </p>
-          </div>
+    <div className={clsx(container, 'pt-8 sm:pt-10')}>
+      <SEO title="Your Cart" />
+      <CheckoutStepper current="Cart" />
 
-          <div className="lg:grid lg:grid-cols-12 lg:gap-x-8">
-            {/* Cart Items */}
-            <div className="lg:col-span-8">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-                <div className="divide-y divide-gray-200">
-                  {cart.items.map((item, index) => (
-                    <motion.div
-                      key={item.id}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.4, delay: index * 0.1 }}
-                      className="p-6 sm:p-8"
-                    >
-                      <div className="flex items-start space-x-4">
-                        <div className="flex-shrink-0">
-                          <img
-                            src={item.product.primary_image || '/api/placeholder/100/100'}
-                            alt={item.product.name}
-                            className="h-20 w-20 rounded-xl object-cover"
-                          />
-                        </div>
+      <div className="mt-12">
+        <h1 className="font-display text-4xl font-semibold tracking-tight text-sf-ink sm:text-5xl">Shopping Cart</h1>
+        <p className="mt-2 text-sm text-sf-muted">
+          {cart.items.length} {cart.items.length === 1 ? 'item' : 'items'} in your cart
+        </p>
+      </div>
 
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <h3 className="text-lg font-medium text-gray-900">
-                                <Link
-                                  to={`/products/${item.product.id}`}
-                                  className="hover:text-blue-600 transition-colors"
-                                >
-                                  {item.product.name}
-                                </Link>
-                              </h3>
-                              <p className="mt-1 text-sm text-gray-500">
-                                {item.product.brand_name}
-                              </p>
-                              <p className="mt-2 text-lg font-semibold text-gray-900">
-                                {formatPrice(item.product.discounted_price)}
-                              </p>
-                            </div>
-
-                            <button
-                              onClick={() => handleRemoveItem(item.id)}
-                              disabled={isRemoving}
-                              className="p-2 text-gray-400 hover:text-red-500 transition-colors"
-                              title="Remove item"
-                            >
-                              <TrashIcon className="h-5 w-5" />
-                            </button>
-                          </div>
-
-                          <div className="mt-4 flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <span className="text-sm text-gray-600">Quantity:</span>
-                              <div className="flex items-center space-x-2">
-                                <button
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity - 1)}
-                                  disabled={item.quantity <= 1 || isUpdating}
-                                  className="p-1 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <MinusIcon className="h-4 w-4" />
-                                </button>
-                                <span className="w-8 text-center font-medium">
-                                  {item.quantity}
-                                </span>
-                                <button
-                                  onClick={() => handleUpdateQuantity(item.id, item.quantity + 1)}
-                                  disabled={isUpdating}
-                                  className="p-1 rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                  <PlusIcon className="h-4 w-4" />
-                                </button>
-                              </div>
-                            </div>
-
-                            <div className="text-right">
-                              <p className="text-lg font-semibold text-gray-900">
-                                {formatPrice(item.total_price)}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Continue Shopping */}
-              <div className="mt-6">
-                <Link to="/products">
-                  <Button variant="outline">
-                    ← Continue Shopping
-                  </Button>
-                </Link>
-              </div>
-            </div>
-
-            {/* Order Summary */}
-            <div className="lg:col-span-4 mt-8 lg:mt-0">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 sticky top-8">
-                <h2 className="text-lg font-medium text-gray-900 mb-6">Order Summary</h2>
-
-                <div className="space-y-4">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Subtotal</span>
-                    <span className="font-medium">{formatPrice(subtotal.toString())}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Tax (18%)</span>
-                    <span className="font-medium">{formatPrice(tax.toString())}</span>
-                  </div>
-
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Shipping</span>
-                    {shipping === 0 ? (
-                      <span className="font-medium text-green-600">Free</span>
-                    ) : (
-                      <span className="font-medium">{formatPrice(shipping.toString())}</span>
-                    )}
-                  </div>
-
-                  {subtotal < 10000 && (
-                    <div className="text-sm text-gray-500 bg-blue-50 p-3 rounded-lg">
-                      Add {formatPrice((10000 - subtotal).toString())} more for free shipping!
-                    </div>
-                  )}
-
-                  <div className="border-t border-gray-200 pt-4">
-                    <div className="flex justify-between text-lg font-semibold">
-                      <span>Total</span>
-                      <span>{formatPrice(total.toString())}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-6">
-                  <Link to="/checkout">
-                    <Button size="lg" fullWidth>
-                      Proceed to Checkout
-                    </Button>
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-12">
+        {/* Items */}
+        <section aria-label="Cart items" className="lg:col-span-8">
+          <ul className="space-y-4">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {cart.items.map((item, index) => (
+                <motion.li
+                  key={item.id}
+                  layout
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0, transition: { delay: index * 0.05 } }}
+                  exit={{ opacity: 0, x: -40, scale: 0.96 }}
+                  className="sf-card flex gap-4 p-4 sm:gap-6 sm:p-5"
+                >
+                  <Link to={`/products/${item.product.id}`} className="flex-shrink-0 rounded-sf" tabIndex={-1} aria-hidden="true">
+                    <ProductImage
+                      src={item.product.primary_image}
+                      alt=""
+                      label={item.product.brand_name}
+                      className="h-24 w-24 rounded-sf sm:h-28 sm:w-28"
+                      imgClassName="p-2"
+                    />
                   </Link>
-                </div>
 
-                {/* Security badges */}
-                <div className="mt-6 flex items-center justify-center space-x-4 text-xs text-gray-500">
-                  <div className="flex items-center">
-                    <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 1l9 4v6c0 5.55-3.84 10.74-9 12-5.16-1.26-9-6.45-9-12V5l9-4z"/>
-                    </svg>
-                    Secure checkout
+                  <div className="flex min-w-0 flex-1 flex-col">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-medium uppercase tracking-[0.14em] text-sf-subtle">
+                          {item.product.brand_name}
+                        </p>
+                        <h2 className="mt-1 font-display text-base font-semibold leading-snug text-sf-ink sm:text-lg">
+                          <Link to={`/products/${item.product.id}`} className="hover:text-sf-accent">
+                            {item.product.name}
+                          </Link>
+                        </h2>
+                        <p className="mt-1 text-sm tabular-nums text-sf-muted">
+                          {formatPrice(item.product.discounted_price)} each
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.id)}
+                        disabled={isRemoving}
+                        aria-label={`Remove ${item.product.name} from cart`}
+                        title="Remove item"
+                        className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full text-sf-subtle transition-colors hover:bg-sf-danger/10 hover:text-sf-danger disabled:opacity-50"
+                      >
+                        <TrashIcon className="h-5 w-5" />
+                      </button>
+                    </div>
+
+                    <div className="mt-auto flex flex-wrap items-end justify-between gap-3 pt-4">
+                      <QuantitySelector
+                        quantity={item.quantity}
+                        onQuantityChange={(next) => handleUpdateQuantity(item.id, next)}
+                        max={item.product.stock_quantity > 0 ? item.product.stock_quantity : 99}
+                        disabled={isUpdating}
+                        size="sm"
+                        label={`Quantity for ${item.product.name}`}
+                      />
+                      <AnimatedPrice
+                        value={toNumber(item.total_price)}
+                        className="font-display text-lg font-semibold text-sf-ink"
+                      />
+                    </div>
                   </div>
-                  <div className="flex items-center">
-                    <svg className="h-4 w-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                    </svg>
-                    SSL encrypted
-                  </div>
-                </div>
+                </motion.li>
+              ))}
+            </AnimatePresence>
+          </ul>
+
+          <Link
+            to="/products"
+            className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-sf-muted transition-colors hover:text-sf-ink"
+          >
+            <ArrowLeftIcon className="h-4 w-4" /> Continue Shopping
+          </Link>
+        </section>
+
+        {/* Summary */}
+        <aside aria-labelledby="cart-summary" className="lg:col-span-4">
+          <GlassPanel glow className="shadow-sf-float lg:sticky lg:top-24">
+            <h2 id="cart-summary" className="font-display text-lg font-semibold text-sf-ink">
+              Order Summary
+            </h2>
+
+            <dl className="mt-6 space-y-3 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-sf-muted">Subtotal</dt>
+                <dd>
+                  <AnimatedPrice value={subtotal} className="font-medium text-sf-ink" />
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-sf-muted">Tax (18%)</dt>
+                <dd>
+                  <AnimatedPrice value={tax} className="font-medium text-sf-ink" />
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-sf-muted">Shipping</dt>
+                <dd className={clsx('font-medium', shipping === 0 ? 'text-sf-success' : 'text-sf-ink')}>
+                  {shipping === 0 ? 'Free' : formatPrice(shipping.toString())}
+                </dd>
+              </div>
+            </dl>
+
+            {/* Free-shipping progress */}
+            <div className="mt-5 rounded-sf bg-sf-surface-2/70 p-3">
+              <p className="flex items-center gap-2 text-xs text-sf-muted">
+                <TruckIcon className="h-4 w-4 text-sf-accent" />
+                {subtotal < FREE_SHIPPING_THRESHOLD ? (
+                  <>Add {formatPrice((FREE_SHIPPING_THRESHOLD - subtotal).toString())} more for free shipping!</>
+                ) : (
+                  <>You&apos;ve unlocked free shipping.</>
+                )}
+              </p>
+              <div
+                className="mt-2 h-1.5 overflow-hidden rounded-full bg-sf-surface-3"
+                role="progressbar"
+                aria-label="Progress towards free shipping"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(shippingProgress * 100)}
+              >
+                <div
+                  style={{ transform: `scaleX(${shippingProgress})` }}
+                  className="h-full origin-left rounded-full bg-sf-gradient transition-transform duration-700 ease-sf-out"
+                />
               </div>
             </div>
-          </div>
-        </div>
+
+            <div className="mt-6 flex items-baseline justify-between border-t border-sf-line pt-5">
+              <span className="font-display text-base font-semibold text-sf-ink">Total</span>
+              <AnimatedPrice value={total} className="font-display text-3xl font-semibold tracking-tight text-sf-ink" />
+            </div>
+
+            <SfLinkButton to="/checkout" size="lg" fullWidth className="mt-6" leftIcon={<LockClosedIcon className="h-5 w-5" />}>
+              Proceed to Checkout
+            </SfLinkButton>
+            <TrustBadges className="mt-5" />
+          </GlassPanel>
+        </aside>
       </div>
     </div>
   );
