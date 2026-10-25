@@ -2,16 +2,16 @@ import React, { Suspense, lazy, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import ErrorBoundary from './components/common/ErrorBoundary';
-import Login from './components/Auth/Login';
-import Register from './components/Auth/Register';
-import VendorRegister from './components/Auth/VendorRegister';
 import Layout from './components/Layout/Layout';
 import ProtectedRoute from './components/Auth/ProtectedRoute';
 import Home from './pages/Home';
 
-// Route-level code splitting: every page except Home and the auth screens is
-// fetched on demand, so customers never download the admin/report code
-// (recharts, jsPDF, ...). Loading states live in Layout.
+// Route-level code splitting: every page except Home is fetched on demand, so
+// customers never download the admin/report code (recharts, jsPDF, ...).
+// Loading states live in Layout (and AuthFallback for the auth screens).
+const Login = lazy(() => import('./components/Auth/Login'));
+const Register = lazy(() => import('./components/Auth/Register'));
+const VendorRegister = lazy(() => import('./components/Auth/VendorRegister'));
 const Products = lazy(() => import('./pages/Products'));
 const Cart = lazy(() => import('./pages/Cart'));
 const ProductDetail = lazy(() => import('./pages/ProductDetail'));
@@ -62,6 +62,10 @@ const Privacy = lazy(() => import('./pages/info/Privacy').then((module) => ({ de
 const Returns = lazy(() => import('./pages/info/Returns'));
 const Blog = lazy(() => import('./pages/info/Blog'));
 const Press = lazy(() => import('./pages/info/Press'));
+
+// Auth screens render outside Layout; index.html has already painted the
+// storefront background, so a blank frame avoids a light spinner flash.
+const AuthFallback: React.FC = () => <div className="min-h-screen" aria-busy="true" />;
 
 // Shown while a saved token is being turned back into a logged-in user after a page refresh
 const SessionLoading: React.FC = () => (
@@ -142,9 +146,9 @@ const App: React.FC = () => {
         <Suspense fallback={<SessionLoading />}>
         <Routes>
           {/* Public Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/vendor-register" element={<VendorRegister />} />
+          <Route path="/login" element={<Suspense fallback={<AuthFallback />}><Login /></Suspense>} />
+          <Route path="/register" element={<Suspense fallback={<AuthFallback />}><Register /></Suspense>} />
+          <Route path="/vendor-register" element={<Suspense fallback={<AuthFallback />}><VendorRegister /></Suspense>} />
 
           {/* Admin Routes */}
           <Route path="/admin" element={<AdminRoute><Layout /></AdminRoute>}>

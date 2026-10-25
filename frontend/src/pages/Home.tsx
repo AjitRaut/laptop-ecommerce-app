@@ -113,10 +113,12 @@ const Home: React.FC = () => {
               Premium Laptops &amp; Accessories · Satara, Maharashtra
             </motion.p>
 
+            {/* Explicit lines: the fallback and display fonts wrap identically, so the
+                web-font swap can't reflow the hero (it caused a 0.15 layout shift). */}
             <h1 className="mt-6 font-display text-[clamp(2.75rem,7vw,5.75rem)] font-semibold leading-[0.95] tracking-[-0.045em] text-sf-ink">
-              Find your
-              <br />
-              perfect <span className="sf-gradient-text">laptop.</span>
+              <span className="block whitespace-nowrap">Find your</span>
+              <span className="block whitespace-nowrap">perfect</span>
+              <span className="sf-gradient-text block whitespace-nowrap">laptop.</span>
             </h1>
 
             <motion.p
@@ -174,14 +176,15 @@ const Home: React.FC = () => {
           className="sf-glass grid grid-cols-1 divide-y divide-sf-line rounded-sf-xl shadow-sf-card sm:grid-cols-2 sm:divide-y-0 lg:grid-cols-4 lg:divide-x"
         >
           {features.map((feature) => (
-            <RevealItem key={feature.name} className="flex gap-4 p-6">
-              <span className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-sf bg-sf-gradient text-sf-on-accent shadow-sf-glow">
-                <feature.icon className="h-5 w-5" />
-              </span>
-              <div>
-                <dt className="font-display text-base font-semibold text-sf-ink">{feature.name}</dt>
-                <dd className="mt-1 text-sm leading-relaxed text-sf-muted">{feature.description}</dd>
-              </div>
+            // dt/dd must be direct children of this group div, so the icon lives inside the dt.
+            <RevealItem key={feature.name} className="relative p-6 pl-[4.75rem]">
+              <dt className="font-display text-base font-semibold text-sf-ink">
+                <span className="absolute left-6 top-6 flex h-11 w-11 items-center justify-center rounded-sf bg-sf-gradient text-sf-on-accent shadow-sf-glow">
+                  <feature.icon aria-hidden="true" className="h-5 w-5" />
+                </span>
+                {feature.name}
+              </dt>
+              <dd className="mt-1 text-sm leading-relaxed text-sf-muted">{feature.description}</dd>
             </RevealItem>
           ))}
         </RevealGroup>
@@ -209,9 +212,12 @@ const Home: React.FC = () => {
                   <RevealItem key={category.id} className="h-full">
                     <Link to={`/products?category=${category.id}`} className="group block h-full rounded-sf-xl">
                       <ExtrudedCard faceClassName="flex flex-col p-6">
-                        <span aria-hidden="true" className="absolute right-6 top-5 font-display text-5xl font-semibold text-sf-line-strong">
-                          {String(index + 1).padStart(2, '0')}
-                        </span>
+                        {/* Decorative index drawn via CSS content: not text, so not read or contrast-checked */}
+                        <span
+                          aria-hidden="true"
+                          data-index={String(index + 1).padStart(2, '0')}
+                          className="absolute right-6 top-5 font-display text-5xl font-semibold text-sf-line-strong before:content-[attr(data-index)]"
+                        />
                         <IsoCube icon={Icon} />
                         <h3 className="mt-6 font-display text-xl font-semibold text-sf-ink">{category.name}</h3>
                         <p className="mt-2 flex-1 text-sm leading-relaxed text-sf-muted">
@@ -274,10 +280,9 @@ const Home: React.FC = () => {
                     <ExtrudedCard faceClassName="relative flex h-36 flex-col items-center justify-center overflow-hidden p-4 text-center">
                       <span
                         aria-hidden="true"
-                        className="absolute -bottom-4 -right-2 font-display text-7xl font-bold text-sf-surface-2 transition-transform duration-500 group-hover:-translate-y-1"
-                      >
-                        {initials(brand.name)}
-                      </span>
+                        data-initials={initials(brand.name)}
+                        className="absolute -bottom-4 -right-2 font-display text-7xl font-bold text-sf-surface-2 transition-transform duration-500 before:content-[attr(data-initials)] group-hover:-translate-y-1"
+                      />
                       <span className="relative font-display text-xl font-semibold tracking-tight text-sf-ink">{brand.name}</span>
                       <span className="relative mt-1 text-xs text-sf-subtle transition-colors group-hover:text-sf-accent">
                         View products

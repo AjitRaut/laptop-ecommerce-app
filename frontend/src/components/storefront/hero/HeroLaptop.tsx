@@ -64,15 +64,26 @@ const HeroLaptop: React.FC<HeroLaptopProps> = ({ progress, className }) => {
 
   const enabled = finePointer && largeScreen && !reduceMotion && capable && !failed;
 
-  // Wait for an idle moment after load before fetching the 3D chunk.
+  // Fetch the ~240 KB 3D chunk only after the visitor first interacts (moves the
+  // mouse, scrolls, presses a key), then at the next idle moment. Initial load and
+  // its main-thread budget stay untouched; the CSS laptop shows until then.
   useEffect(() => {
     if (!enabled || idle) return;
-    if ('requestIdleCallback' in window) {
-      const id = window.requestIdleCallback(() => setIdle(true), { timeout: 2500 });
-      return () => window.cancelIdleCallback(id);
-    }
-    const timer = setTimeout(() => setIdle(true), 1200);
-    return () => clearTimeout(timer);
+    let idleId = 0;
+    const events: (keyof WindowEventMap)[] = ['pointermove', 'scroll', 'keydown', 'wheel'];
+    const start = () => {
+      events.forEach((name) => window.removeEventListener(name, start));
+      if ('requestIdleCallback' in window) {
+        idleId = window.requestIdleCallback(() => setIdle(true), { timeout: 1000 });
+      } else {
+        setIdle(true);
+      }
+    };
+    events.forEach((name) => window.addEventListener(name, start, { passive: true, once: true }));
+    return () => {
+      events.forEach((name) => window.removeEventListener(name, start));
+      if (idleId && 'cancelIdleCallback' in window) window.cancelIdleCallback(idleId);
+    };
   }, [enabled, idle]);
 
   // Pause rendering when the hero is off screen or the tab is hidden.

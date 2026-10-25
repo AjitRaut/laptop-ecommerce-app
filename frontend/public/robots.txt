@@ -1,0 +1,11 @@
+User-agent: *
+# Trailing slashes keep public pages like /vendor-register crawlable.
+Disallow: /admin/
+Disallow: /vendor/
+Disallow: /payment/
+Disallow: /cart
+Disallow: /checkout
+Disallow: /orders
+Disallow: /profile
+Disallow: /wishlist
+Allow: /

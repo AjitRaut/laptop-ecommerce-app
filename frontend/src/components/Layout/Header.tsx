@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, Suspense, lazy, useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Dialog, Menu, Popover, Transition } from '@headlessui/react';
 import {
@@ -10,7 +10,7 @@ import {
   ChevronDownIcon,
   MagnifyingGlassIcon,
   ClipboardDocumentListIcon,
-  ArrowRightOnRectangleIcon,
+  ArrowRightStartOnRectangleIcon,
   ArrowRightIcon,
   TruckIcon,
 } from '@heroicons/react/24/outline';
@@ -21,7 +21,6 @@ import { logout } from '@/store/slices/authSlice';
 import { useAppDispatch } from '@/hooks/useTypedSelector';
 import { useGetBrandsQuery, useGetCategoriesQuery } from '@/store/api/productsApi';
 import BrandLogo from '../storefront/BrandLogo';
-import CommandPalette from '../storefront/CommandPalette';
 import CssLaptop from '../storefront/CssLaptop';
 import { ThemeToggle } from '../storefront/theme';
 import { useCartFly } from '../storefront/CartFly';
@@ -29,6 +28,14 @@ import { useScrolled } from '../storefront/hooks';
 import { categoryBlurb, categoryIcon } from '../storefront/categoryVisuals';
 import { sfButtonClasses } from '../storefront/SfButton';
 import { container } from '../storefront/utils';
+
+// The palette (Combobox + live search) is fetched on first use; hovering or
+// focusing a search trigger prefetches it so it still opens instantly.
+const loadCommandPalette = () => import('../storefront/CommandPalette');
+const CommandPalette = lazy(loadCommandPalette);
+const prefetchPalette = () => {
+  void loadCommandPalette();
+};
 
 const navigation = [
   { name: 'Laptops', href: '/products?category=laptop' },
@@ -43,7 +50,12 @@ const iconButton =
 
 const Header: React.FC = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [paletteOpen, setPaletteOpenState] = useState(false);
+  const [paletteRequested, setPaletteRequested] = useState(false);
+  const setPaletteOpen = (open: boolean) => {
+    if (open) setPaletteRequested(true);
+    setPaletteOpenState(open);
+  };
   const { isAuthenticated, user } = useAuth();
   const { itemCount } = useCart();
   const { registerTarget, bumpKey } = useCartFly();
@@ -64,7 +76,8 @@ const Header: React.FC = () => {
     const onKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
-        setPaletteOpen(true);
+        setPaletteRequested(true);
+        setPaletteOpenState(true);
       }
     };
     window.addEventListener('keydown', onKeyDown);
@@ -218,6 +231,8 @@ const Header: React.FC = () => {
         <button
           type="button"
           onClick={() => setPaletteOpen(true)}
+          onMouseEnter={prefetchPalette}
+          onFocus={prefetchPalette}
           className="ml-auto hidden h-10 w-full max-w-xs items-center gap-3 rounded-full border border-sf-line-strong bg-sf-surface/60 pl-4 pr-2 text-sm text-sf-subtle transition-colors hover:border-sf-accent/50 hover:text-sf-muted md:flex"
         >
           <MagnifyingGlassIcon className="h-4 w-4" />
@@ -229,7 +244,13 @@ const Header: React.FC = () => {
 
         {/* Actions */}
         <div className="ml-auto flex items-center gap-0.5 md:ml-0 sm:gap-1">
-          <button type="button" onClick={() => setPaletteOpen(true)} aria-label="Search" className={clsx(iconButton, 'md:hidden')}>
+          <button
+            type="button"
+            onClick={() => setPaletteOpen(true)}
+            onPointerDown={prefetchPalette}
+            aria-label="Search"
+            className={clsx(iconButton, 'md:hidden')}
+          >
             <MagnifyingGlassIcon className="h-5 w-5" />
           </button>
           <ThemeToggle />
@@ -314,7 +335,7 @@ const Header: React.FC = () => {
                               active ? 'bg-sf-danger/10 text-sf-danger' : 'text-sf-muted'
                             )}
                           >
-                            <ArrowRightOnRectangleIcon className="h-4 w-4" />
+                            <ArrowRightStartOnRectangleIcon className="h-4 w-4" />
                             Sign Out
                           </button>
                         )}
@@ -346,7 +367,11 @@ const Header: React.FC = () => {
         </div>
       </nav>
 
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      {paletteRequested && (
+        <Suspense fallback={null}>
+          <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+        </Suspense>
+      )}
 
       {/* Mobile menu */}
       <Transition.Root show={mobileMenuOpen} as={Fragment}>
@@ -467,7 +492,7 @@ const Header: React.FC = () => {
                         }}
                         className="flex w-full items-center gap-3 rounded-sf px-3 py-2.5 text-left text-base font-medium text-sf-danger hover:bg-sf-danger/10"
                       >
-                        <ArrowRightOnRectangleIcon className="h-5 w-5" />
+                        <ArrowRightStartOnRectangleIcon className="h-5 w-5" />
                         Sign Out
                       </button>
                     </li>
