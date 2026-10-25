@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useRef, useState } from 'react';
+import React, { Fragment, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Dialog, Disclosure, Menu, Transition } from '@headlessui/react';
 import { AdjustmentsHorizontalIcon, ChevronDownIcon, XMarkIcon, CheckIcon } from '@heroicons/react/24/outline';
@@ -205,42 +205,28 @@ const Products: React.FC = () => {
   const resultsRef = useRef<HTMLElement>(null);
   const reduceMotion = useReducedMotion();
 
-  const [filters, setFilters] = useState<ProductFilters>(() => filtersFromParams(searchParams));
+  // The URL is the only copy of the filters, so header search / mega-menu links just work.
+  // Only user actions below write it: an effect would also fire when the URL changes underneath
+  // the page (header links, or leaving while the exit animation runs) and push stale filters back.
+  const paramsKey = searchParams.toString();
+  const filters = useMemo(() => filtersFromParams(new URLSearchParams(paramsKey)), [paramsKey]);
 
   const { data: productsData, isLoading, isFetching, error } = useGetProductsQuery(filters);
   const { data: categories } = useGetCategoriesQuery();
   const { data: brands } = useGetBrandsQuery();
 
-  // URL → filters: header search / mega-menu links can change the query while this page stays mounted.
-  const paramsKey = searchParams.toString();
-  useEffect(() => {
-    const fromUrl = filtersFromParams(new URLSearchParams(paramsKey));
-    setFilters((prev) =>
-      paramsFromFilters(prev).toString() === paramsFromFilters(fromUrl).toString() ? prev : fromUrl
-    );
-  }, [paramsKey]);
-
-  // filters → URL (skip when nothing changed; normalising defaults replaces instead of pushing history).
-  useEffect(() => {
-    const params = paramsFromFilters(filters);
-    if (params.toString() === searchParams.toString()) return;
-    const onlyNormalising =
-      paramsFromFilters(filtersFromParams(searchParams)).toString() === params.toString();
-    setSearchParams(params, { replace: onlyNormalising });
-    // searchParams is read for comparison only
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filters, setSearchParams]);
-
   const updateFilter = (key: FilterKey, value: string | number) => {
-    setFilters((prev) => ({
-      ...prev,
-      [key]: value,
-      page: key === 'page' ? value : 1,
-    }));
+    setSearchParams(
+      paramsFromFilters({
+        ...filters,
+        [key]: value,
+        page: key === 'page' ? value : 1,
+      })
+    );
   };
 
   const clearFilters = () => {
-    setFilters(EMPTY_FILTERS);
+    setSearchParams(paramsFromFilters(EMPTY_FILTERS));
   };
 
   const changePage = (page: number) => {
